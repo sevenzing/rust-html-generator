@@ -26,11 +26,9 @@ pub fn highlight_file_as_html(
     file_id: FileId,
     file_content: &str,
 ) -> Result<String, anyhow::Error> {
-    println!("start actual highlight");
-
+    println!("get highlight ranges");
     let hightlight = get_highlight_ranges(host, file_id);
-
-    println!("start building html");
+    println!("building html");
     let mut buf = String::new();
     buf.push_str("<pre><code>");
     for token in &hightlight {
@@ -58,15 +56,14 @@ fn code(content: String) -> String {
 
 fn html_token(content: impl Display, token: &HtmlToken) -> String {
     if let Some(class) = token.highlight.clone() {
-        //let hover_info = token.hover_info.as_ref().map(|h| h.markup.to_string()).unwrap_or_default();
-        let mut hover_info = "".to_string();
-        // let mut hover_info = match hover_info.as_str() {
-        //     "()" => "",
-        //     "{unknown}" => "",
-        //     _ => &hover_info,
-        // }
-        // .to_string();
-        if token.type_info.is_some() {
+        let hover_info = token.hover_info.as_ref().map(|h| h.markup.to_string()).unwrap_or_default();
+        let mut hover_info = match hover_info.as_str() {
+            "()" => "",
+            "{unknown}" => "",
+            _ => &hover_info,
+        }
+        .to_string();
+        if hover_info.is_empty() && token.type_info.is_some() {
             hover_info = token.type_info.as_ref().unwrap().clone();
         }
         if !hover_info.is_empty() {
@@ -147,7 +144,6 @@ fn traverse_syntax(
         .into_iter()
         .map(|hint| (hint.range, hint))
         .collect();
-    println!("type_map={:?}", type_map);
 
     let mut a = vec![];
     for event in root.preorder_with_tokens() {
@@ -168,10 +164,9 @@ fn traverse_syntax(
             NodeOrToken::Token(token) => token,
         };
         let highlight = highlight_class(&token, hl_map.get(&range).cloned());
-        let trange = TextRange::empty(range.start());
         let frange = FileRange {
             file_id,
-            range: trange,
+            range,
         };
 
         let hover_config = HoverConfig {
@@ -179,11 +174,19 @@ fn traverse_syntax(
             documentation: None,
             keywords: true,
         };
-        let hover_info = host
-            .analysis()
-            .hover(&hover_config, frange)
-            .unwrap()
-            .map(|r| r.info);
+
+        let hover_info = {
+            if token.kind() == SK::COMMENT {
+                None
+            } else {
+                host
+                    .analysis()
+                    .hover(&hover_config, frange)
+                    .unwrap()
+                    .map(|r| r.info)
+            }
+        };
+
         let ty = infer_type(&token, sema);
         let html_token = HtmlToken {
             syntax_token: token,
@@ -263,6 +266,14 @@ fn main() -> Result<(), anyhow::Error> {
     let ignore: Vec<&Path> = vec![
         ".git",
         "target",
+        "out",
+        "out_nice.html",
+        "README.md",
+        "output_test_rust_create.html",
+        "tree_script.js",
+        "tree_style.css",
+        "tree.html",
+
     ].into_iter().map(Path::new).collect();
 
     for entry in walkdir::WalkDir::new(&root)
@@ -274,6 +285,7 @@ fn main() -> Result<(), anyhow::Error> {
         .filter(|f| !f.path().ancestors().any(|f| {
             ignore.iter().any(|end| f.ends_with(end))
         }))
+        .filter(|f| f.path().extension().map(|e| e == "rs").unwrap_or(false))
     {
         let path = entry.path();
         let is_rust_file = path.extension().map(|e| e == "rs").unwrap_or(false);
@@ -287,6 +299,7 @@ fn main() -> Result<(), anyhow::Error> {
         let highlighted_content = if is_rust_file {
             let id = vfs.file_id(&vfs_path).expect("failed to read file");
             let content = std::str::from_utf8(vfs.file_contents(id))?;    
+            println!("highlight file {:?}", file_relative_path);
             highlight_file_as_html(&host, id, content)?
         } else {
             code(std::fs::read_to_string(path)?)

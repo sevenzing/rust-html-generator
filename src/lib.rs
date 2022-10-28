@@ -33,7 +33,7 @@ pub fn get_filepath() -> PathBuf {
 pub fn get_analysis(path: &PathBuf) -> Result<(AnalysisHost, Vfs), anyhow::Error> {
     let mut cargo_config = CargoConfig::default();
     cargo_config.sysroot = Some(RustcSource::Discover);
-    cargo_config.sysroot = None;
+    //cargo_config.sysroot = None;
 
     let load_cargo_config = LoadCargoConfig {
         load_out_dirs_from_check: true,

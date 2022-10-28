@@ -135,7 +135,7 @@ pub fn generate(filenames: Vec<MyPath>, files: HashMap<String, String>, dir: &st
         </div>
     </div>
     <div class="right">
-        <div id="code" class="code-text">Select file</div>
+        <div id="code" class="code-text">Select file from the left</div>
     </div> 
 </div>
 

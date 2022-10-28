@@ -21,18 +21,20 @@
 }
 
 
+
 .code-text { 
-    color: #DCDCCC; 
-    background: #3F3F3F; 
-    font-size: 22px; 
-    padding: 0.4em;
-    width: 100%;
+    color: #DCDCCC;
+    background: #3F3F3F;
+    width: 200%;
     height: 100%;
     margin: 0;
 }
 
 .code-text pre {
     margin: 0;
+    background: inherit;
+    padding: 0.4em;
+    height: max-content;
 }
 
 .tnz-chartbox.folder-view {
