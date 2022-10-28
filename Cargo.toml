@@ -1,0 +1,29 @@
+[package]
+name = "rs-html"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+syn = { version = "1.0", features = ["parsing", "full", "extra-traits"]}
+quote = "1.0"
+ide = { path = "../rust-analyzer/crates/ide", version="0.0.0" }
+
+ide-db = { path = "../rust-analyzer/crates/ide-db", version="0.0.0" }
+hir = { path = "../rust-analyzer/crates/hir", version="0.0.0" }
+hir-def = { path = "../rust-analyzer/crates/hir-def", version="0.0.0" }
+syntax = { path = "../rust-analyzer/crates/syntax", version="0.0.0" }
+rust-analyzer = { path = "../rust-analyzer/crates/rust-analyzer", version="0.0.0" }
+project-model = { path = "../rust-analyzer/crates/project-model", version="0.0.0" }
+vfs = { path = "../rust-analyzer/crates/vfs", version="0.0.0" }
+html-escape = "0.2"
+colored = "2"
+anyhow = "1.0"
+phf = { version="0.11", features = ["macros"] }
+lazy_static = "1.4"
+proc-macro2 = { version = "1.0", features = ["span-locations"] }
+walkdir = "2.3"
+serde_json = "1"
+serde = "1"
+#rustc-hir = { git = "https://github.com/rust-lang/rust", version = "0.0.0"}
