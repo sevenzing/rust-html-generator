@@ -47,7 +47,6 @@ lazy_static::lazy_static! {
         let kw_styles = KW_STYLES.into_iter().map(|(k, v)| format!(".{k:<30}{v}")).collect::<Vec<_>>().join("\n");
         r#"
 body                { margin: 0; }
-pre                 { color: #DCDCCC; background: #3F3F3F; font-size: 22px; padding: 0.4em; }
 div                 { display: inline-block }
 .hovertext span {
 	background-color: rgba(0,0,0, 0.8);

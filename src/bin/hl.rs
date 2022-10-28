@@ -4,11 +4,11 @@ use ide::{
     HoverConfig, HoverResult, InlayHintsConfig, RootDatabase, TextRange,
 };
 use ide_db::base_db::VfsPath;
-use rs_html::{get_analysis, html::{Path, Dir, self}};
+use rs_html::{get_analysis, html::{MyPath, MyDir, self}};
 use std::{
     collections::HashMap,
     fmt::{Display, Write},
-    path::PathBuf,
+    path::{PathBuf, Path},
 };
 use syntax::{ast::AstNode, match_ast, NodeOrToken, SyntaxNode, SyntaxToken};
 
@@ -49,6 +49,11 @@ pub fn highlight_file_as_html(
     }
     buf.push_str("</code></pre>");
     Ok(buf)
+}
+
+fn code(content: String) -> String {
+    let content = html_escape::encode_text(&content).to_string();
+    format!("<pre><code>{content}</code></pre>")
 }
 
 fn html_token(content: impl Display, token: &HtmlToken) -> String {
@@ -253,33 +258,49 @@ fn main() -> Result<(), anyhow::Error> {
     assert!(root.is_dir());
     let (host, vfs) = get_analysis(&root).unwrap();
     let mut files = vec![];
+    let mut files_content = HashMap::new();
+    
+    let ignore: Vec<&Path> = vec![
+        ".git",
+        "target",
+    ].into_iter().map(Path::new).collect();
+
     for entry in walkdir::WalkDir::new(&root)
         .sort_by_file_name()
         .follow_links(false)
         .into_iter()
         .filter_map(|e| e.ok())
         .filter(|f| f.path().is_file())
-        .filter(|f| f.path().extension().map(|e| e == "rs").unwrap_or(false))
+        .filter(|f| !f.path().ancestors().any(|f| {
+            ignore.iter().any(|end| f.ends_with(end))
+        }))
     {
         let path = entry.path();
+        let is_rust_file = path.extension().map(|e| e == "rs").unwrap_or(false);
 
         let vfs_path = VfsPath::new_real_path(path.to_string_lossy().to_string());
 
         let file_relative_path = path.strip_prefix(root.clone()).expect("failed to extract relative path");
-        files.push(Path::new(&file_relative_path.to_string_lossy().to_string()));
+        files.push(MyPath::new(&file_relative_path.to_string_lossy().to_string()));
         
-        let id = vfs.file_id(&vfs_path).expect("failed to read file");
-        let content = std::str::from_utf8(vfs.file_contents(id))?;
 
-        //let html_content = highlight_file_as_html(&host, id, content)?;
+        let highlighted_content = if is_rust_file {
+            let id = vfs.file_id(&vfs_path).expect("failed to read file");
+            let content = std::str::from_utf8(vfs.file_contents(id))?;    
+            highlight_file_as_html(&host, id, content)?
+        } else {
+            code(std::fs::read_to_string(path)?)
+        };
 
+        let fname = format!("test-rust-crate/{}", file_relative_path.to_string_lossy().to_string());
+        println!("{fname}");
+        files_content.insert(fname, highlighted_content);
         //std::fs::write(format!("./out/{}.html"), html_content).expect("unable to write file");
     }
-    let tree = Dir::from_paths(files);
-    let s = html::generate_file_tree(tree);
+    let s = html::generate(files, files_content, "test-rust-crate");
     
-    let s = format!("{}\n\n{}", rs_html::css::STYLE.to_string(), s);
+    //let s = format!("{}\n\n{}", rs_html::css::STYLE.to_string(), s);
 
-    std::fs::write("tree.html", s).expect("unable to write file");
+    std::fs::write("output.html", s).expect("unable to write file");
     Ok(())
 }

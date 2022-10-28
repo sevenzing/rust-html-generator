@@ -1,4 +1,5 @@
 pub mod css;
+pub mod js;
 pub mod html;
 pub mod highlights;
 
