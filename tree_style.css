@@ -1,3 +1,4 @@
+
 .content {
     width: 100%;
 }
@@ -14,6 +15,52 @@
     height: 100%;
 }
 
+
+
+/* .lineCounter, .rust {
+    font-family: lucida console, courier new, courier, monospace;
+    margin: 0;
+    padding: 10px 0;
+    height: 75vh;
+    border-radius: 0;
+    resize: none;
+    font-size: 16px;
+    line-height: 1.2;
+    outline: none;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+.rust {
+    padding-left: calc(3.5rem + 5px);
+    width:100%;
+    background-color:#272822;
+    border-color:#272822;
+    color:#ffffff;
+}
+
+.lineCounter {
+    display: flex;
+    border-color: transparent;
+    overflow-y: hidden;
+    text-align: right;
+    box-shadow: none;
+    color: #707070;
+    background-color: #d8d8d8;
+    position: absolute;
+    width: 3.5rem;
+    background-color:#3E3D32;
+    border-color:#3E3D32;
+    color:#928869;
+} */
+
+.linesCounter {
+    text-align: right;
+    color: #707070;
+    width: 3.5rem;
+}
+
 .invisible {
     visibility: hidden;
     position: absolute;
@@ -28,6 +75,8 @@
     width: 200%;
     height: 100%;
     margin: 0;
+    display: flex;
+    flex-direction: row;
 }
 
 .code-text pre {

@@ -30,9 +30,14 @@ pub fn get_filepath() -> PathBuf {
     }
 }
 
-pub fn get_analysis(path: &PathBuf) -> Result<(AnalysisHost, Vfs), anyhow::Error> {
+pub fn get_analysis(path: &PathBuf, scan_whole: bool) -> Result<(AnalysisHost, Vfs), anyhow::Error> {
     let mut cargo_config = CargoConfig::default();
-    cargo_config.sysroot = Some(RustcSource::Discover);
+    
+    cargo_config.sysroot = if scan_whole {
+        Some(RustcSource::Discover)
+    } else {
+        None
+    };
     //cargo_config.sysroot = None;
 
     let load_cargo_config = LoadCargoConfig {

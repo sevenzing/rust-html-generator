@@ -1,7 +1,7 @@
 use hir::{HirDisplay, Semantics};
 use ide::{
     AnalysisHost, ClosureReturnTypeHints, FileId, FileRange, Highlight, HighlightConfig,
-    HoverConfig, HoverResult, InlayHintsConfig, RootDatabase, TextRange,
+    HoverConfig, HoverResult, InlayHintsConfig, RootDatabase, TextRange, FilePosition, NavigationTarget, RangeInfo,
 };
 use ide_db::base_db::VfsPath;
 use rs_html::{get_analysis, html::{MyPath, MyDir, self}};
@@ -19,6 +19,7 @@ struct HtmlToken {
     highlight: Option<String>,
     hover_info: Option<HoverResult>,
     type_info: Option<String>,
+    def: Option<RangeInfo<Vec<NavigationTarget>>>
 }
 
 pub fn highlight_file_as_html(
@@ -29,14 +30,17 @@ pub fn highlight_file_as_html(
     println!("get highlight ranges");
     let hightlight = get_highlight_ranges(host, file_id);
     println!("building html");
+    
+
     let mut buf = String::new();
-    buf.push_str("<pre><code>");
+    buf.push_str("<pre><code class=\"rust\">");
     for token in &hightlight {
         let chunk = if token.syntax_token.kind() == SK::WHITESPACE
             && token.syntax_token.text().contains("\n")
         {
             let raw_chunk = &file_content[token.range];
-            raw_chunk.replace("\n", "</code>\n<code>")
+            //raw_chunk.replace("\n", "</code>\n<code>")
+            raw_chunk.to_string()
         } else {
             let raw_chunk = &file_content[token.range];
             let chunk = html_escape::encode_text(raw_chunk).to_string();
@@ -46,12 +50,23 @@ pub fn highlight_file_as_html(
         write!(buf, "{}", chunk)?;
     }
     buf.push_str("</code></pre>");
-    Ok(buf)
+    
+    let mut linesBuf = String::new();
+    linesBuf.push_str("<pre><code class=\"linesCounter\">");
+    for i in 0..file_content.lines().count() {
+        let line_no = i + 1;
+        write!(linesBuf, "<span id=\"{}\">{}</span>\n", line_no, line_no)?;
+
+    }
+    linesBuf.push_str("</code></pre>");
+
+    Ok(format!("{}\n{}", linesBuf, buf))
 }
 
 fn code(content: String) -> String {
     let content = html_escape::encode_text(&content).to_string();
-    format!("<pre><code>{content}</code></pre>")
+    //format!("<pre><code>{content}</code></pre>")
+    content
 }
 
 fn html_token(content: impl Display, token: &HtmlToken) -> String {
@@ -168,12 +183,18 @@ fn traverse_syntax(
             file_id,
             range,
         };
+        let fposition = FilePosition {
+            file_id,
+            offset: range.start(),
+        };
 
         let hover_config = HoverConfig {
             links_in_hover: false,
             documentation: None,
             keywords: true,
         };
+
+        //let def = host.analysis().goto_definition(fposition).unwrap();
 
         let hover_info = {
             if token.kind() == SK::COMMENT {
@@ -194,6 +215,7 @@ fn traverse_syntax(
             highlight,
             hover_info,
             type_info: type_map.get(&range).map(|h| h.label.to_string()),
+            def: None,
         };
 
         a.push(html_token);
@@ -259,7 +281,7 @@ pub fn infer_type(token: &SyntaxToken, sema: &Semantics<'_, RootDatabase>) -> Op
 fn main() -> Result<(), anyhow::Error> {
     let root = PathBuf::from("/Users/levlymarenko/innopolis/thesis/test-rust-crate/");
     assert!(root.is_dir());
-    let (host, vfs) = get_analysis(&root).unwrap();
+    let (host, vfs) = get_analysis(&root, true).unwrap();
     let mut files = vec![];
     let mut files_content = HashMap::new();
     
@@ -288,7 +310,7 @@ fn main() -> Result<(), anyhow::Error> {
         .filter(|f| f.path().extension().map(|e| e == "rs").unwrap_or(false))
     {
         let path = entry.path();
-        let is_rust_file = path.extension().map(|e| e == "rs").unwrap_or(false);
+        let is_rust_file: bool = path.extension().map(|e| e == "rs").unwrap_or(false);
 
         let vfs_path = VfsPath::new_real_path(path.to_string_lossy().to_string());
 

@@ -214,7 +214,7 @@ fn main() {
     let root = PathBuf::from("/Users/levlymarenko/innopolis/thesis/test-rust-crate/");
     //let root = PathBuf::from("/Users/levlymarenko/innopolis/thesis/rust-ast/");
 
-    let (host, vfs) = get_analysis(&root).unwrap();
+    let (host, vfs) = get_analysis(&root, true).unwrap();
 
     let path = VfsPath::new_real_path(
         "/Users/levlymarenko/innopolis/thesis/test-rust-crate/src/main.rs".into(),
