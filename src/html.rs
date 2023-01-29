@@ -1,8 +1,9 @@
 use std::{collections::HashMap, fmt::format};
 
 use serde_json::Value;
+use tera::Context;
 
-use crate::{js::TREE_SCRIPT, css};
+use crate::{css, js::TREE_SCRIPT, templates::TEMPLATES};
 
 #[derive(Debug)]
 pub struct MyPath {
@@ -16,7 +17,6 @@ impl MyPath {
     }
 }
 
-
 #[derive(Debug)]
 pub struct MyDir {
     name: String,
@@ -28,7 +28,7 @@ impl MyDir {
         let mut top = Self::new(top_dir_name);
         for path in paths.iter() {
             Self::build_tree(&mut top, &path.parts, 0);
-        };
+        }
         top
     }
 
@@ -40,14 +40,13 @@ impl MyDir {
     }
 
     pub fn is_file(&self) -> bool {
-        return self.children.is_empty()
+        return self.children.is_empty();
     }
-
 
     fn build_tree(node: &mut MyDir, parts: &Vec<String>, depth: usize) {
         if depth < parts.len() {
             let item = &parts[depth];
-    
+
             let mut dir = match node.find_child(&item) {
                 Some(d) => d,
                 None => {
@@ -81,22 +80,29 @@ impl MyDir {
     }
 }
 
-
 fn traverse(tree: MyDir, prefix_path: &str) -> String {
     let dirname = &tree.name;
 
     if tree.is_file() {
-            let full_path = format!("{prefix_path}{dirname}");
-            format!(r#"
+        let full_path = format!("{prefix_path}{dirname}");
+        format!(
+            r#"
 <label class="tnz-file-tree-item file">
     <input class="tnz-file-tree-cb" type="radio" name="file" value="{full_path}">
     <span class="tnz-file-tree-label">{dirname}</span>
 </label>
-"#)
+"#
+        )
     } else {
         let prefix_path = format!("{prefix_path}{dirname}/");
-        let result = tree.children.into_iter().map(|d| traverse(*d, &prefix_path)).collect::<Vec<String>>().join("\n\n");
-        format!(r#"
+        let result = tree
+            .children
+            .into_iter()
+            .map(|d| traverse(*d, &prefix_path))
+            .collect::<Vec<String>>()
+            .join("\n\n");
+        format!(
+            r#"
 <label class="tnz-file-tree-item dir">
 <input class="tnz-file-tree-cb" type="checkbox">
 
@@ -105,7 +111,8 @@ fn traverse(tree: MyDir, prefix_path: &str) -> String {
 {result}
 </div>
 </label>
-"#)
+"#
+        )
     }
 }
 
@@ -113,10 +120,17 @@ fn get_tree_script() -> String {
     TREE_SCRIPT.to_string()
 }
 
-
 fn save_files_in_html(files: HashMap<String, String>) -> String {
-    files.into_iter().map(|(fname, content)| format!("
-<div id={fname} class='invisible'>{content}</div>")).collect::<Vec<String>>().join("\n\n")
+    files
+        .into_iter()
+        .map(|(fname, content)| {
+            format!(
+                "
+<div id={fname} class='invisible'>{content}</div>"
+            )
+        })
+        .collect::<Vec<String>>()
+        .join("\n\n")
 }
 
 pub fn generate(filenames: Vec<MyPath>, files: HashMap<String, String>, dir: &str) -> String {
@@ -125,26 +139,11 @@ pub fn generate(filenames: Vec<MyPath>, files: HashMap<String, String>, dir: &st
     let script = get_tree_script();
     let styles = css::STYLE.to_string();
     let files = save_files_in_html(files);
-    format!(r#"
-{styles}
-
-<div class="content">
-    <div class="left">
-        <div class="tnz-file-tree">
-{tree}
-        </div>
-    </div>
-    <div class="right">
-        <div id="code" class="code-text">Select file from the left</div>
-    </div> 
-</div>
-
-<script>
-{script}
-</script>        
-
-<div id="all-files">
-{files}
-</div>
-"#)
+    
+    let mut context = Context::new();
+    context.insert("tree", &tree);
+    context.insert("script", &script);
+    context.insert("styles", &styles);
+    context.insert("files", &files);
+    TEMPLATES.render("main.html", &context).unwrap()
 }

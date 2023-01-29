@@ -1,16 +1,25 @@
 use hir::{HirDisplay, Semantics};
 use ide::{
-    AnalysisHost, ClosureReturnTypeHints, FileId, FileRange, Highlight, HighlightConfig,
-    HoverConfig, HoverResult, InlayHintsConfig, RootDatabase, TextRange, FilePosition, NavigationTarget, RangeInfo,
+    AnalysisHost, ClosureReturnTypeHints, FileId, FilePosition, FileRange, Highlight,
+    HighlightConfig, HoverConfig, HoverResult, InlayHintsConfig, NavigationTarget, RangeInfo,
+    RootDatabase, TextRange,
 };
 use ide_db::base_db::VfsPath;
-use rs_html::{get_analysis, html::{MyPath, MyDir, self}};
+use rs_html::{
+    get_analysis,
+    html::{self, MyDir, MyPath},
+    templates::TEMPLATES,
+};
+use serde::Serialize;
 use std::{
     collections::HashMap,
     fmt::{Display, Write},
-    path::{PathBuf, Path},
+    path::{Path, PathBuf},
 };
 use syntax::{ast::AstNode, match_ast, NodeOrToken, SyntaxNode, SyntaxToken};
+use tera::Context;
+
+const NEW_LINE_SUPPORTED: &str = "<<RUST_HL_NEW_LINE_SUPPORTER>>";
 
 #[derive(Debug)]
 struct HtmlToken {
@@ -19,10 +28,39 @@ struct HtmlToken {
     highlight: Option<String>,
     hover_info: Option<HoverResult>,
     type_info: Option<String>,
-    def: Option<RangeInfo<Vec<NavigationTarget>>>
+    def: Option<RangeInfo<Vec<NavigationTarget>>>,
 }
 
-pub fn highlight_file_as_html(
+#[derive(Serialize)]
+struct Line {
+    number: usize,
+    html_content: String,
+}
+
+fn render_lines(lines: &[Line]) -> Result<String, anyhow::Error> {
+    let mut context = Context::new();
+    context.insert("lines", &lines);
+    let result = TEMPLATES.render("code.html", &context)?;
+    Ok(result)
+}
+
+fn is_new_line(syntax_token: &SyntaxToken) -> bool {
+    syntax_token.kind() == SK::WHITESPACE && syntax_token.text().contains("\n")
+}
+
+fn unwrap_token(file_content: &str, token: &HtmlToken) -> String {
+    if is_new_line(&token.syntax_token) {
+        let raw_chunk = &file_content[token.range];
+        raw_chunk.replace("\n", NEW_LINE_SUPPORTED)
+    } else {
+        let raw_chunk = &file_content[token.range];
+        let chunk = html_escape::encode_text(raw_chunk).to_string();
+        let chunk = html_token_to_string(chunk, token);
+        chunk.to_string()
+    }
+}
+
+pub fn highlight_rust_file_as_html(
     host: &AnalysisHost,
     file_id: FileId,
     file_content: &str,
@@ -30,48 +68,41 @@ pub fn highlight_file_as_html(
     println!("get highlight ranges");
     let hightlight = get_highlight_ranges(host, file_id);
     println!("building html");
-    
 
-    let mut buf = String::new();
-    buf.push_str("<pre><code class=\"rust\">");
-    for token in &hightlight {
-        let chunk = if token.syntax_token.kind() == SK::WHITESPACE
-            && token.syntax_token.text().contains("\n")
-        {
-            let raw_chunk = &file_content[token.range];
-            //raw_chunk.replace("\n", "</code>\n<code>")
-            raw_chunk.to_string()
-        } else {
-            let raw_chunk = &file_content[token.range];
-            let chunk = html_escape::encode_text(raw_chunk).to_string();
-            let chunk = html_token(chunk, token);
-            chunk.to_string()
-        };
-        write!(buf, "{}", chunk)?;
-    }
-    buf.push_str("</code></pre>");
-    
-    let mut linesBuf = String::new();
-    linesBuf.push_str("<pre><code class=\"linesCounter\">");
-    for i in 0..file_content.lines().count() {
-        let line_no = i + 1;
-        write!(linesBuf, "<span id=\"{}\">{}</span>\n", line_no, line_no)?;
-
-    }
-    linesBuf.push_str("</code></pre>");
-
-    Ok(format!("{}\n{}", linesBuf, buf))
+    let lines = hightlight
+        .into_iter()
+        .map(|token| unwrap_token(file_content, &token))
+        .collect::<String>()
+        .split(NEW_LINE_SUPPORTED)
+        .enumerate()
+        .map(|(number, html_content)| Line {
+            number: number + 1,
+            html_content: html_content.to_string(),
+        })
+        .collect::<Vec<_>>();
+    render_lines(&lines)
 }
 
-fn code(content: String) -> String {
+fn highlight_other_as_html(content: String) -> Result<String, anyhow::Error> {
     let content = html_escape::encode_text(&content).to_string();
-    //format!("<pre><code>{content}</code></pre>")
-    content
+    let lines = content
+        .split('\n')
+        .enumerate()
+        .map(|(number, html_content)| Line {
+            number: number + 1,
+            html_content: html_content.to_string(),
+        })
+        .collect::<Vec<_>>();
+    render_lines(&lines)
 }
 
-fn html_token(content: impl Display, token: &HtmlToken) -> String {
+fn html_token_to_string(content: impl Display, token: &HtmlToken) -> String {
     if let Some(class) = token.highlight.clone() {
-        let hover_info = token.hover_info.as_ref().map(|h| h.markup.to_string()).unwrap_or_default();
+        let hover_info = token
+            .hover_info
+            .as_ref()
+            .map(|h| h.markup.to_string())
+            .unwrap_or_default();
         let mut hover_info = match hover_info.as_str() {
             "()" => "",
             "{unknown}" => "",
@@ -179,10 +210,7 @@ fn traverse_syntax(
             NodeOrToken::Token(token) => token,
         };
         let highlight = highlight_class(&token, hl_map.get(&range).cloned());
-        let frange = FileRange {
-            file_id,
-            range,
-        };
+        let frange = FileRange { file_id, range };
         let fposition = FilePosition {
             file_id,
             offset: range.start(),
@@ -200,8 +228,7 @@ fn traverse_syntax(
             if token.kind() == SK::COMMENT {
                 None
             } else {
-                host
-                    .analysis()
+                host.analysis()
                     .hover(&hover_config, frange)
                     .unwrap()
                     .map(|r| r.info)
@@ -242,8 +269,6 @@ pub fn infer_type(token: &SyntaxToken, sema: &Semantics<'_, RootDatabase>) -> Op
     match node {
         ast::Pat(it) => {
                 if let syntax::ast::Pat::IdentPat(pat) = it {
-                    // let descended = sema.descend_node_into_attributes(pat.clone()).pop();
-                    // let desc_pat = descended.as_ref().unwrap_or(&pat);
                     let ty = sema.type_of_pat(&pat.into())?.original;
                     Some(ty)
                 } else { None }
@@ -257,34 +282,13 @@ pub fn infer_type(token: &SyntaxToken, sema: &Semantics<'_, RootDatabase>) -> Op
     }
 }
 
-// fn main() {
-//     let root = PathBuf::from("/Users/levlymarenko/innopolis/thesis/test-rust-crate/");
-//     //let root = PathBuf::from("/Users/levlymarenko/innopolis/thesis/rust-ast/");
-
-//     let (host, vfs) = get_analysis(&root).unwrap();
-
-//     let path = VfsPath::new_real_path(
-//         "/Users/levlymarenko/innopolis/thesis/test-rust-crate/src/main.rs".into(),
-//     );
-//     //let path = VfsPath::new_real_path("/Users/levlymarenko/innopolis/thesis/rust-ast/src/lib.rs".into());
-
-//     let file_id = vfs.file_id(&path).expect("no file found");
-//     let sema = hir::Semantics::new(host.raw_database());
-
-//     let source_file = sema.parse(file_id);
-
-//     let html = highlight_file_as_html(&host, file_id, source_file.syntax().to_string())
-//         .expect("failed to highlight");
-//     std::fs::write("./out.html", html).expect("unable to write file");
-// }
-
 fn main() -> Result<(), anyhow::Error> {
     let root = PathBuf::from("/Users/levlymarenko/innopolis/thesis/test-rust-crate/");
     assert!(root.is_dir());
-    let (host, vfs) = get_analysis(&root, true).unwrap();
+    let (host, vfs) = get_analysis(&root, false).unwrap();
     let mut files = vec![];
     let mut files_content = HashMap::new();
-    
+
     let ignore: Vec<&Path> = vec![
         ".git",
         "target",
@@ -295,8 +299,10 @@ fn main() -> Result<(), anyhow::Error> {
         "tree_script.js",
         "tree_style.css",
         "tree.html",
-
-    ].into_iter().map(Path::new).collect();
+    ]
+    .into_iter()
+    .map(Path::new)
+    .collect();
 
     for entry in walkdir::WalkDir::new(&root)
         .sort_by_file_name()
@@ -304,38 +310,43 @@ fn main() -> Result<(), anyhow::Error> {
         .into_iter()
         .filter_map(|e| e.ok())
         .filter(|f| f.path().is_file())
-        .filter(|f| !f.path().ancestors().any(|f| {
-            ignore.iter().any(|end| f.ends_with(end))
-        }))
-        .filter(|f| f.path().extension().map(|e| e == "rs").unwrap_or(false))
+        .filter(|f| {
+            !f.path()
+                .ancestors()
+                .any(|f| ignore.iter().any(|end| f.ends_with(end)))
+        })
+    //.filter(|f| f.path().extension().map(|e| e == "rs").unwrap_or(false))
     {
         let path = entry.path();
         let is_rust_file: bool = path.extension().map(|e| e == "rs").unwrap_or(false);
 
         let vfs_path = VfsPath::new_real_path(path.to_string_lossy().to_string());
 
-        let file_relative_path = path.strip_prefix(root.clone()).expect("failed to extract relative path");
-        files.push(MyPath::new(&file_relative_path.to_string_lossy().to_string()));
-        
+        let file_relative_path = path
+            .strip_prefix(root.clone())
+            .expect("failed to extract relative path");
+        files.push(MyPath::new(
+            &file_relative_path.to_string_lossy().to_string(),
+        ));
 
         let highlighted_content = if is_rust_file {
             let id = vfs.file_id(&vfs_path).expect("failed to read file");
-            let content = std::str::from_utf8(vfs.file_contents(id))?;    
+            let content = std::str::from_utf8(vfs.file_contents(id))?;
             println!("highlight file {:?}", file_relative_path);
-            highlight_file_as_html(&host, id, content)?
+            highlight_rust_file_as_html(&host, id, content)?
         } else {
-            code(std::fs::read_to_string(path)?)
+            let content = std::fs::read_to_string(path)?;
+            highlight_other_as_html(content)?
         };
 
-        let fname = format!("test-rust-crate/{}", file_relative_path.to_string_lossy().to_string());
+        let fname = format!(
+            "test-rust-crate/{}",
+            file_relative_path.to_string_lossy().to_string()
+        );
         println!("{fname}");
         files_content.insert(fname, highlighted_content);
-        //std::fs::write(format!("./out/{}.html"), html_content).expect("unable to write file");
     }
     let s = html::generate(files, files_content, "test-rust-crate");
-    
-    //let s = format!("{}\n\n{}", rs_html::css::STYLE.to_string(), s);
-
     std::fs::write("output.html", s).expect("unable to write file");
     Ok(())
 }

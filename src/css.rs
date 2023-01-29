@@ -84,5 +84,3 @@ div                 { display: inline-block }
 </style>"#, KW_STYLE.to_string(), TREE_STYLE.to_string())
     };
 }
-
-

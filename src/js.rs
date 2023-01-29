@@ -3,5 +3,3 @@ lazy_static::lazy_static! {
         std::fs::read_to_string("logic.js").expect("cannot file tree_script.js")
     };
 }
-
-

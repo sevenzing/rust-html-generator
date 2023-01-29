@@ -1,0 +1,113 @@
+
+<style>
+body                { margin: 0; }
+pre                 { color: #DCDCCC; background: #3F3F3F; font-size: 22px; padding: 0.4em; }
+div                 { display: inline-block }
+.hovertext span {
+	background-color: rgba(0,0,0, 0.8);
+    border-radius: 15px 15px 15px 0px;
+    box-shadow: 1px 1px 10px rgb(0 0 0 / 50%);
+    color: #fff;
+    margin-left: 2px;
+    margin-top: -30px;
+    opacity: 0;
+    padding: 10px 10px 10px 10px;
+    position: absolute;
+    text-decoration: none;
+    visibility: hidden;
+    z-index: 0;
+}
+		
+.hovertext:hover span {
+	opacity: 1;
+	visibility: visible;
+}
+
+.keyword.unsafe                { color: #BC8383; font-weight: bold; }
+.struct                        { color: #7CB8BB; }
+.mutable.unsafe                { color: #BC8383; text-decoration: underline; }
+.lifetime                      { color: #DFAF8F; font-style: italic; }
+.variable                      { color: #DCDCCC; }
+.intra_doc_link                { font-style: italic; }
+.documentation                 { color: #629755; }
+.field                         { color: #94BFF3; }
+.control                       { font-style: italic; }
+.enum_variant                  { color: #BDE0F3; }
+.comment                       { color: #7F9F7F; }
+.reference                     { font-style: italic; font-weight: bold; }
+.format_specifier              { color: #CC696B; }
+.operator.unsafe               { color: #BC8383; }
+.enum                          { color: #7CB8BB; }
+.numeric_literal               { color: #BFEBBF; }
+.keyword                       { color: #0f7bd9; font-weight: bold; }
+.type_param                    { color: #DFAF8F; }
+.macro                         { color: #94BFF3; }
+.label                         { color: #DFAF8F; font-style: italic; }
+.attribute                     { color: #94BFF3; }
+.escape_sequence               { color: #94BFF3; }
+.function.declaration          { color: #c8df39 }
+.builtin_type                  { color: #8CD0D3; }
+.derive                        { color: #94BFF3; font-style: italic; }
+.module                        { color: #AFD8AF; }
+.value_param                   { color: #DCDCCC; }
+.injected                      { opacity: 0.65 ; }
+.string_literal                { color: #CC9393; }
+.unresolved_reference          { color: #FC5555; text-decoration: wavy underline; }
+.function.unsafe               { color: #BC8383; }
+.text                          { color: #DCDCCC; }
+.parameter                     { color: #94BFF3; }
+.function                      { color: #93E0E3; }
+.mutable                       { text-decoration: underline; }
+.macro.unsafe                  { color: #BC8383; }
+.bool_literal                  { color: #BFE6EB; }
+.trait.unsafe                  { color: #BC8383; }
+.type                          { color: #7CB8BB; }
+</style>
+<pre><code>
+<span class="hovertext keyword">use</span> <span class="hovertext module crate_root default_library library">std</span>::<span class="hovertext module default_library library">cmp</span>::<span class="hovertext enum default_library library">Ordering</span>;
+<span class="hovertext keyword">use</span> <span class="hovertext module crate_root default_library library">std</span>::<span class="hovertext module default_library library">io</span>;
+
+</span>
+<span class="hovertext keyword">fn</span> <span class="hovertext function declaration">foo</span>() -&gt; <span class="hovertext enum default_library library">Result</span>&lt;<span class="hovertext builtin_type">i32</span>, <span class="hovertext struct default_library library">String</span>&gt; {
+    <span class="hovertext enum_variant default_library library">Ok<span>Ok&lt;i32, String&gt;(i32) -&gt; Result&lt;i32, String&gt;</span></span>(<span class="hovertext numeric_literal">12<span>i32</span></span>)
+}
+</span>
+<span class="hovertext keyword">fn</span> <span class="hovertext function declaration">main</span>() {
+    <span class="hovertext macro default_library library">println</span><span class="hovertext macro">!</span>("Guess the number!");
+    <span class="hovertext keyword">let</span> <span class="hovertext variable declaration">unused_var<span>Result&lt;i32, String&gt;</span></span> = <span class="hovertext function">foo<span>fn foo() -&gt; Result&lt;i32, String&gt;</span></span>();
+    <span class="hovertext keyword">let</span> <span class="hovertext variable declaration">secret_number<span>u32</span></span> = <span class="hovertext numeric_literal">4<span>u32</span></span>;
+
+    <span class="hovertext keyword control">loop</span> {
+        <span class="hovertext macro default_library library">println</span><span class="hovertext macro">!</span>("Please input your guess.");
+
+        <span class="hovertext keyword">let</span> <span class="hovertext keyword">mut<span>String</span></span> <span class="hovertext variable declaration mutable">guess<span>String</span></span> = <span class="hovertext struct default_library library">String<span>fn new() -&gt; String</span></span>::<span class="hovertext function associated default_library library static">new<span>fn new() -&gt; String</span></span>();
+
+        <span class="hovertext module default_library library">io<span>fn stdin() -&gt; Stdin</span></span>::<span class="hovertext function default_library library">stdin<span>fn stdin() -&gt; Stdin</span></span>()
+            .<span class="hovertext function associated default_library library reference">read_line<span>Result&lt;usize, Error&gt;</span></span>(&amp;<span class="hovertext keyword">mut<span>Type:       &amp;mut String
+Coerced to: &amp;mut String
+</span></span> <span class="hovertext variable mutable">guess<span>String</span></span>)
+            .<span class="hovertext function associated consuming default_library library">expect<span>usize</span></span>("Failed to read line");
+
+        <span class="hovertext keyword">let</span> <span class="hovertext variable declaration">guess<span>u32</span></span>: <span class="hovertext builtin_type">u32</span> = <span class="hovertext keyword control">match<span>u32</span></span> <span class="hovertext variable mutable">guess<span>Type:       String
+Coerced to:   &amp;str
+</span></span>.<span class="hovertext function associated default_library library reference">trim<span>&amp;str</span></span>().<span class="hovertext function associated default_library library reference">parse<span>Result&lt;u32, ParseIntError&gt;</span></span>() {
+            <span class="hovertext enum_variant default_library library">Ok<span>Result&lt;u32, ParseIntError&gt;</span></span>(<span class="hovertext variable declaration">num<span>u32</span></span>) =&gt; <span class="hovertext variable">num<span>u32</span></span>,
+            <span class="hovertext enum_variant default_library library">Err<span>Result&lt;u32, ParseIntError&gt;</span></span>(_) =&gt; <span class="hovertext keyword control">continue<span>Type:         !
+Coerced to: u32
+</span></span>,
+        };
+
+        <span class="hovertext macro default_library library">println</span><span class="hovertext macro">!</span>("You guessed: <span class="hovertext format_specifier">{</span><span class="hovertext variable">guess</span><span class="hovertext format_specifier">}</span>");
+
+        <span class="hovertext keyword control">match</span> <span class="hovertext variable">guess<span>Type:        u32
+Coerced to: &amp;u32
+</span></span>.<span class="hovertext function associated default_library library reference trait">cmp<span>Ordering</span></span>(&amp;<span class="hovertext variable">secret_number<span>u32</span></span>) {
+            <span class="hovertext enum default_library library">Ordering<span>Ordering</span></span>::<span class="hovertext enum_variant default_library library">Less<span>Ordering</span></span> =&gt; <span class="hovertext macro default_library library">println</span><span class="hovertext macro">!</span>("Too small!"),
+            <span class="hovertext enum default_library library">Ordering<span>Ordering</span></span>::<span class="hovertext enum_variant default_library library">Greater<span>Ordering</span></span> =&gt; <span class="hovertext macro default_library library">println</span><span class="hovertext macro">!</span>("Too big!"),
+            <span class="hovertext enum default_library library">Ordering<span>Ordering</span></span>::<span class="hovertext enum_variant default_library library">Equal<span>Ordering</span></span> =&gt; {
+                <span class="hovertext macro default_library library">println</span><span class="hovertext macro">!</span>("You win!");
+                <span class="hovertext keyword control">break<span>!</span></span>;
+            }
+        }
+    }
+}</code></pre>

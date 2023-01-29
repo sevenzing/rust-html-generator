@@ -1,7 +1,8 @@
 pub mod css;
-pub mod js;
-pub mod html;
 pub mod highlights;
+pub mod html;
+pub mod js;
+pub mod templates;
 
 use std::{env, fs, path::PathBuf};
 
@@ -30,9 +31,12 @@ pub fn get_filepath() -> PathBuf {
     }
 }
 
-pub fn get_analysis(path: &PathBuf, scan_whole: bool) -> Result<(AnalysisHost, Vfs), anyhow::Error> {
+pub fn get_analysis(
+    path: &PathBuf,
+    scan_whole: bool,
+) -> Result<(AnalysisHost, Vfs), anyhow::Error> {
     let mut cargo_config = CargoConfig::default();
-    
+
     cargo_config.sysroot = if scan_whole {
         Some(RustcSource::Discover)
     } else {
