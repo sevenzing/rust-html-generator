@@ -1,25 +1,27 @@
-use hir::{HirDisplay, Semantics};
+use hir::Semantics;
 use ide::{
     AnalysisHost, ClosureReturnTypeHints, FileId, FilePosition, FileRange, Highlight,
-    HighlightConfig, HoverConfig, HoverResult, InlayHintsConfig, NavigationTarget, RangeInfo,
+    HighlightConfig, HoverConfig, HoverResult, InlayHintsConfig,
     RootDatabase, TextRange,
 };
 use ide_db::base_db::VfsPath;
 use rs_html::{
     get_analysis,
-    html::{self, MyDir, MyPath},
+    html::{self, MyPath},
+    jumps::{JumpInfo},
     templates::TEMPLATES,
 };
 use serde::Serialize;
 use std::{
     collections::HashMap,
-    fmt::{Display, Write},
+    fmt::Display,
     path::{Path, PathBuf},
 };
 use syntax::{ast::AstNode, match_ast, NodeOrToken, SyntaxNode, SyntaxToken};
 use tera::Context;
+use vfs::Vfs;
 
-const NEW_LINE_SUPPORTED: &str = "<<RUST_HL_NEW_LINE_SUPPORTER>>";
+const NEW_LINE_HELPER: &str = "<<RUST_HL_NEW_LINE_HELPER>>";
 
 #[derive(Debug)]
 struct HtmlToken {
@@ -28,7 +30,7 @@ struct HtmlToken {
     highlight: Option<String>,
     hover_info: Option<HoverResult>,
     type_info: Option<String>,
-    def: Option<RangeInfo<Vec<NavigationTarget>>>,
+    jumps: Option<JumpInfo>,
 }
 
 #[derive(Serialize)]
@@ -51,7 +53,7 @@ fn is_new_line(syntax_token: &SyntaxToken) -> bool {
 fn unwrap_token(file_content: &str, token: &HtmlToken) -> String {
     if is_new_line(&token.syntax_token) {
         let raw_chunk = &file_content[token.range];
-        raw_chunk.replace("\n", NEW_LINE_SUPPORTED)
+        raw_chunk.replace("\n", NEW_LINE_HELPER)
     } else {
         let raw_chunk = &file_content[token.range];
         let chunk = html_escape::encode_text(raw_chunk).to_string();
@@ -62,18 +64,19 @@ fn unwrap_token(file_content: &str, token: &HtmlToken) -> String {
 
 pub fn highlight_rust_file_as_html(
     host: &AnalysisHost,
+    vfs: &Vfs,
     file_id: FileId,
     file_content: &str,
 ) -> Result<String, anyhow::Error> {
     println!("get highlight ranges");
-    let hightlight = get_highlight_ranges(host, file_id);
+    let hightlight = get_highlight_ranges(host, vfs, file_id);
     println!("building html");
 
     let lines = hightlight
         .into_iter()
         .map(|token| unwrap_token(file_content, &token))
         .collect::<String>()
-        .split(NEW_LINE_SUPPORTED)
+        .split(NEW_LINE_HELPER)
         .enumerate()
         .map(|(number, html_content)| Line {
             number: number + 1,
@@ -97,7 +100,7 @@ fn highlight_other_as_html(content: String) -> Result<String, anyhow::Error> {
 }
 
 fn html_token_to_string(content: impl Display, token: &HtmlToken) -> String {
-    if let Some(class) = token.highlight.clone() {
+    if let Some(mut class) = token.highlight.clone() {
         let hover_info = token
             .hover_info
             .as_ref()
@@ -115,15 +118,28 @@ fn html_token_to_string(content: impl Display, token: &HtmlToken) -> String {
         if !hover_info.is_empty() {
             hover_info = format!("<span>{}</span>", html_escape::encode_text(&hover_info))
         }
+
+        let jump_attributes = token
+            .jumps
+            .as_ref()
+            .map(|jump| {
+                if let Ok(jump_data) = jump.serialize(&DIR, PROJECT_NAME) {
+                    class.push_str(" jump");
+                    format!("jump-data=\"{}\"", jump_data)
+                } else {
+                    Default::default()
+                }
+            })
+            .unwrap_or_default();
+
         return format!(
-            "<span class=\"hovertext {}\">{}{}</span>",
-            class, content, hover_info
+            "<span class=\"hovertext {class}\" {jump_attributes}>{content}{hover_info}</span>",
         );
     };
     content.to_string()
 }
 
-fn get_highlight_ranges(host: &AnalysisHost, file_id: FileId) -> Vec<HtmlToken> {
+fn get_highlight_ranges(host: &AnalysisHost, vfs: &Vfs, file_id: FileId) -> Vec<HtmlToken> {
     let sema = Semantics::new(host.raw_database());
 
     let (root, range_to_highlight) = {
@@ -133,7 +149,7 @@ fn get_highlight_ranges(host: &AnalysisHost, file_id: FileId) -> Vec<HtmlToken> 
     };
     let krate = sema.scope(&root).expect("cannot load crate").krate();
 
-    traverse_syntax(host, &sema, file_id, &root, krate, range_to_highlight)
+    traverse_syntax(host, &sema, &vfs, file_id, &root, krate, range_to_highlight)
 }
 
 use syntax::{
@@ -143,12 +159,12 @@ use syntax::{
 
 fn traverse_syntax(
     host: &AnalysisHost,
-    sema: &Semantics<'_, RootDatabase>,
-    //config: HighlightConfig,
+    _sema: &Semantics<'_, RootDatabase>,
+    vfs: &Vfs,
     file_id: FileId,
     root: &SyntaxNode,
-    krate: hir::Crate,
-    range_to_highlight: TextRange,
+    _krate: hir::Crate,
+    _range_to_highlight: TextRange,
 ) -> Vec<HtmlToken> {
     let highlight_config = HighlightConfig {
         strings: false,
@@ -204,7 +220,7 @@ fn traverse_syntax(
         };
 
         let token = match element {
-            NodeOrToken::Node(node) => {
+            NodeOrToken::Node(_) => {
                 continue;
             }
             NodeOrToken::Token(token) => token,
@@ -222,7 +238,35 @@ fn traverse_syntax(
             keywords: true,
         };
 
-        //let def = host.analysis().goto_definition(fposition).unwrap();
+        let kind = token.kind();
+        let useless = kind.is_literal() || kind.is_keyword() || kind.is_punct() || kind.is_trivia();
+        let def = if !useless {
+            host.analysis().goto_definition(fposition).unwrap()
+        } else {
+            None
+        };
+
+        let jumps = def
+            .map(|mut d| {
+                d.info = d
+                    .info
+                    .into_iter()
+                    .filter(|t| {
+                        t.focus_range
+                            .map(|focus_range| focus_range != range)
+                            .unwrap_or(false)
+                    })
+                    .collect();
+                d
+            })
+            .and_then(|r| (!r.info.is_empty()).then_some(r))
+            .map(|info| {
+                let target = &info.info[0];
+                let file = vfs.file_path(target.file_id);
+                let line_finder = host.analysis().file_line_index(target.file_id).unwrap();
+                let focus = target.focus_range.unwrap();
+                JumpInfo::new(file, &focus, line_finder)
+            });
 
         let hover_info = {
             if token.kind() == SK::COMMENT {
@@ -234,15 +278,18 @@ fn traverse_syntax(
                     .map(|r| r.info)
             }
         };
+        // if def.is_some() {
+        //     println!("SOME! {:?}: {:?}", token, def);
+        // }
 
-        let ty = infer_type(&token, sema);
+        // let ty = infer_type(&token, sema);
         let html_token = HtmlToken {
             syntax_token: token,
             range,
             highlight,
             hover_info,
             type_info: type_map.get(&range).map(|h| h.label.to_string()),
-            def: None,
+            jumps,
         };
 
         a.push(html_token);
@@ -273,8 +320,7 @@ pub fn infer_type(token: &SyntaxToken, sema: &Semantics<'_, RootDatabase>) -> Op
                     Some(ty)
                 } else { None }
             },
-        ast::Expr(it) => {
-
+        ast::Expr(_) => {
             None
         },
         _ => None
@@ -282,10 +328,15 @@ pub fn infer_type(token: &SyntaxToken, sema: &Semantics<'_, RootDatabase>) -> Op
     }
 }
 
+lazy_static::lazy_static! {
+    static ref DIR: PathBuf = PathBuf::from("/Users/levlymarenko/innopolis/thesis/test-rust-crate/");
+}
+const PROJECT_NAME: &str = "test-rust-crate";
+
 fn main() -> Result<(), anyhow::Error> {
-    let root = PathBuf::from("/Users/levlymarenko/innopolis/thesis/test-rust-crate/");
+    let root = DIR.clone();
     assert!(root.is_dir());
-    let (host, vfs) = get_analysis(&root, false).unwrap();
+    let (host, vfs) = get_analysis(&root, true).unwrap();
     let mut files = vec![];
     let mut files_content = HashMap::new();
 
@@ -333,20 +384,24 @@ fn main() -> Result<(), anyhow::Error> {
             let id = vfs.file_id(&vfs_path).expect("failed to read file");
             let content = std::str::from_utf8(vfs.file_contents(id))?;
             println!("highlight file {:?}", file_relative_path);
-            highlight_rust_file_as_html(&host, id, content)?
+            highlight_rust_file_as_html(&host, &vfs, id, content)?
         } else {
             let content = std::fs::read_to_string(path)?;
             highlight_other_as_html(content)?
         };
 
         let fname = format!(
-            "test-rust-crate/{}",
+            "{PROJECT_NAME}/{}",
             file_relative_path.to_string_lossy().to_string()
         );
         println!("{fname}");
         files_content.insert(fname, highlighted_content);
     }
-    let s = html::generate(files, files_content, "test-rust-crate");
+    let s = html::generate(
+        files,
+        files_content,
+        root.file_name().unwrap().to_str().unwrap(),
+    );
     std::fs::write("output.html", s).expect("unable to write file");
     Ok(())
 }

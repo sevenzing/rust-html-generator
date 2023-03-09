@@ -1,6 +1,4 @@
-use std::{collections::HashMap, fmt::format};
-
-use serde_json::Value;
+use std::collections::HashMap;
 use tera::Context;
 
 use crate::{css, js::TREE_SCRIPT, templates::TEMPLATES};
@@ -139,7 +137,7 @@ pub fn generate(filenames: Vec<MyPath>, files: HashMap<String, String>, dir: &st
     let script = get_tree_script();
     let styles = css::STYLE.to_string();
     let files = save_files_in_html(files);
-    
+
     let mut context = Context::new();
     context.insert("tree", &tree);
     context.insert("script", &script);

@@ -2,6 +2,7 @@ pub mod css;
 pub mod highlights;
 pub mod html;
 pub mod js;
+pub mod jumps;
 pub mod templates;
 
 use std::{env, fs, path::PathBuf};
