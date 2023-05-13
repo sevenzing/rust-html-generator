@@ -9,12 +9,12 @@ const update = () => {
     selectFileWithName(filename)
 
     let line_no = document.location.hash.replace('#L', '');
-    let id = 'LC' + line_no;
-    let line = document.getElementById(id);
+    let line_content = document.getElementById('LC' + line_no);
+    let line = document.getElementById('L' + line_no)
     content.querySelectorAll('.line-content').forEach(l => l.classList.remove('line-selected'))
-    if (line) {
-        line.classList.add('line-selected')
-        line.scrollIntoView({ behavior: "smooth", block: "end", inline: "nearest" });
+    if (line_content) {
+        line_content.classList.add('line-selected')
+        line.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
     }
 }
 
@@ -35,7 +35,7 @@ const treeClick = (filename) => {
 
 const treeClicked = (e) => {
     let filename = e.target.value;
-    jumpTo(filename, null)
+    showFile(filename)
 }
 
 for (let i = 0; i < inputs.length; i++) {
@@ -47,8 +47,7 @@ window.addEventListener('locationchange', () => {
 })
 
 
-const jumpTo = (filename, line_no) => {
-    console.log("jump to", filename, line_no);
+const buildHrefFromJump = (filename, line_no) => {
     const params = new URLSearchParams(document.location.search);
     if (filename) {
         params.set('filename', filename)
@@ -59,8 +58,24 @@ const jumpTo = (filename, line_no) => {
     } else {
         hash = ''
     }
-
     let url = document.location.pathname + '?' + params.toString() + hash;
+    return url
+}
+
+const jumpTo = (jump_data) => {
+    console.log('jump to', jump_data)
+    let from_url = buildHrefFromJump(jump_data['from']['file'], jump_data['from']['location']['start']['line']);
+    let to_url = buildHrefFromJump(jump_data['to']['file'], jump_data['to']['location']['start']['line']);
+
+    window.history.back();
+    window.history.pushState({}, null, from_url);
+    window.history.pushState({}, null, to_url);
+    selectFileWithName(jump_data['from']['file']);
+    update();
+}
+
+const showFile = (filename) => {
+    let url = buildHrefFromJump(filename, null);
     window.history.pushState({}, null, url);
     selectFileWithName(filename);
     update();
@@ -72,8 +87,8 @@ const initializeJumps = () => {
         const jump_data = JSON.parse(j.getAttribute('jump-data').replaceAll("'", '"'));
         j.onclick = function() {
             if (pressedKeys[META_KEY]) {
-                treeClick(jump_data['file'])
-                jumpTo(jump_data['file'], jump_data['location']['start']['line'])
+                treeClick(jump_data['to']['file'])
+                jumpTo(jump_data)
             }
         }
     });

@@ -7,8 +7,7 @@ pub const KW_STYLES: phf::Map<&'static str, &'static str> = phf_map! {
     "documentation" => "{ color: #629755; }",
     "intra_doc_link" => "{ font-style: italic; }",
     "injected" => "{ opacity: 0.65 ; }",
-    "struct" => "{ color: #7CB8BB; }",
-    "enum" => "{ color: #7CB8BB; }",
+    "struct, .enum" => "{ color: #7CB8BB; }",
     "enum_variant" => "{ color: #BDE0F3; }",
     "string_literal" => "{ color: #CC9393; }",
     "field" => "{ color: #94BFF3; }",
@@ -35,11 +34,10 @@ pub const KW_STYLES: phf::Map<&'static str, &'static str> = phf_map! {
     "format_specifier" => "{ color: #CC696B; }",
     "mutable" => "{ text-decoration: underline; }",
     "escape_sequence" => "{ color: #94BFF3; }",
-    "keyword" => "{ color: #0f7bd9; font-weight: bold; }",
+    "keyword" => "{ color: #F0DFAF; font-weight: bold; }",
     "control" => "{ font-style: italic; }",
     "reference" => "{ font-style: italic; font-weight: bold; }",
-    "function.declaration" => "{ color: #c8df39 }",
-    "unresolved_reference" => "{ color: #FC5555; text-decoration: wavy underline; }",
+    "unresolved_reference" =>  "{ color: #FC5555; text-decoration: wavy underline; }"
 };
 
 lazy_static::lazy_static! {
@@ -62,12 +60,16 @@ div                 { display: inline-block }
     visibility: hidden;
     z-index: 0;
 }
-		
+
 .hovertext:hover span {
 	opacity: 1;
 	visibility: visible;
 }
+.code-section {
+    background-color: #3F3F3F
+}
 
+pre                 { color: #DCDCCC; padding: 0.4em; }
 {{kw_styles}}
 "#.replace("{{kw_styles}}", &kw_styles)
     };

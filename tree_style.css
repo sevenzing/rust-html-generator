@@ -1,6 +1,7 @@
 
 .content {
     width: 100%;
+    position: relative;
 }
 
 .left {
@@ -65,11 +66,12 @@
 }
 
 .line-selected {
-    background-color: rgba(255, 248, 197, 0.8);
+    background-color: rgb(124 124 109 / 80%);
     box-shadow: inset 2px 0 0 rgba(212, 167, 44, 0.4);
 }
 .line-number {
     font-size: 14px;
+    color: #858585
 }
 .line-content {
     font-size: 14px;
@@ -101,6 +103,7 @@
     display: flex;
     flex-direction: row;
     font-size: 12px;
+    min-width: 600px;
 }
 
 .code-section pre {
@@ -123,7 +126,10 @@
 }
 
 .tnz-file-tree {
-    padding: 10px 20px;
+    padding: 10px 0px;
+    position: fixed;
+    top: 0;
+
 }
 
 .tnz-file-tree label {

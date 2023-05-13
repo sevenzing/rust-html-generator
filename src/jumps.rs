@@ -1,5 +1,6 @@
 use ide::{LineIndex, TextRange};
 use serde::{self, Serialize};
+use serde_json::Value;
 use serde_with::serde_as;
 use std::{path::Path, sync::Arc};
 use vfs::VfsPath;
@@ -26,20 +27,39 @@ pub struct JumpInfo {
     pub location: JumpLocation,
 }
 
+#[derive(Debug)]
+pub struct Jumps {
+    pub to: JumpInfo,
+    pub from: JumpInfo,
+}
+
+impl Jumps {
+    pub fn serialize(&self, root: &Path, project_name: &str) -> Result<String, anyhow::Error> {
+        let content = serde_json::to_string(&serde_json::json!({
+            "to": self.to.serialize(root, project_name)?,
+            "from": self.from.serialize(root, project_name)?,
+        }))?;
+        Ok(content.replace("\"", "'"))
+    }
+}
+
 impl JumpInfo {
-    pub fn new(file: VfsPath, focus: &TextRange, finder: Arc<LineIndex>) -> Self {
+    pub fn from_focus(file: VfsPath, focus: &TextRange, finder: Arc<LineIndex>) -> Self {
         Self {
             file,
             location: JumpLocation::from_focus(focus, finder),
         }
     }
-    pub fn serialize(&self, root: &Path, project_name: &str) -> Result<String, anyhow::Error> {
+    pub fn new(file: VfsPath, location: JumpLocation) -> Self {
+        Self { file, location }
+    }
+
+    pub fn serialize(&self, root: &Path, project_name: &str) -> Result<Value, anyhow::Error> {
         let file = self.serialize_file(root, project_name)?;
-        let content = serde_json::to_string(&serde_json::json!({
+        Ok(serde_json::json!({
             "file": file,
             "location": self.location,
-        }))?;
-        Ok(content.replace("\"", "'"))
+        }))
     }
 
     fn serialize_file(&self, root: &Path, project_name: &str) -> Result<String, anyhow::Error> {

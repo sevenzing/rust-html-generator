@@ -1,14 +1,13 @@
 use hir::Semantics;
 use ide::{
     AnalysisHost, ClosureReturnTypeHints, FileId, FilePosition, FileRange, Highlight,
-    HighlightConfig, HoverConfig, HoverResult, InlayHintsConfig,
-    RootDatabase, TextRange,
+    HighlightConfig, HoverConfig, HoverResult, InlayHintsConfig, LineCol, RootDatabase, TextRange,
 };
 use ide_db::base_db::VfsPath;
 use rs_html::{
     get_analysis,
     html::{self, MyPath},
-    jumps::{JumpInfo},
+    jumps::{JumpInfo, JumpLocation, Jumps},
     templates::TEMPLATES,
 };
 use serde::Serialize;
@@ -30,7 +29,7 @@ struct HtmlToken {
     highlight: Option<String>,
     hover_info: Option<HoverResult>,
     type_info: Option<String>,
-    jumps: Option<JumpInfo>,
+    jumps: Option<Jumps>,
 }
 
 #[derive(Serialize)]
@@ -265,7 +264,13 @@ fn traverse_syntax(
                 let file = vfs.file_path(target.file_id);
                 let line_finder = host.analysis().file_line_index(target.file_id).unwrap();
                 let focus = target.focus_range.unwrap();
-                JumpInfo::new(file, &focus, line_finder)
+                let to = JumpInfo::from_focus(file, &focus, line_finder);
+
+                let origin_file = vfs.file_path(file_id);
+                let origin_line_finder = host.analysis().file_line_index(file_id).unwrap();
+                let origin_location = JumpLocation::from_focus(&range, origin_line_finder);
+                let from = JumpInfo::new(origin_file, origin_location);
+                Jumps { to, from }
             });
 
         let hover_info = {
@@ -328,6 +333,11 @@ pub fn infer_type(token: &SyntaxToken, sema: &Semantics<'_, RootDatabase>) -> Op
     }
 }
 
+// lazy_static::lazy_static! {
+//     static ref DIR: PathBuf = PathBuf::from("/Users/levlymarenko/innopolis/thesis/rust-ast/");
+// }
+// const PROJECT_NAME: &str = "rust-ast";
+
 lazy_static::lazy_static! {
     static ref DIR: PathBuf = PathBuf::from("/Users/levlymarenko/innopolis/thesis/test-rust-crate/");
 }
@@ -341,15 +351,16 @@ fn main() -> Result<(), anyhow::Error> {
     let mut files_content = HashMap::new();
 
     let ignore: Vec<&Path> = vec![
+        ".DS_Store",
         ".git",
         "target",
-        "out",
-        "out_nice.html",
         "README.md",
-        "output_test_rust_create.html",
+        "output_rust_ast.html",
+        "output.html",
         "tree_script.js",
         "tree_style.css",
         "tree.html",
+        "Cargo.lock",
     ]
     .into_iter()
     .map(Path::new)
@@ -369,6 +380,7 @@ fn main() -> Result<(), anyhow::Error> {
     //.filter(|f| f.path().extension().map(|e| e == "rs").unwrap_or(false))
     {
         let path = entry.path();
+        println!("INFO: walk to {path:?}");
         let is_rust_file: bool = path.extension().map(|e| e == "rs").unwrap_or(false);
 
         let vfs_path = VfsPath::new_real_path(path.to_string_lossy().to_string());
@@ -382,7 +394,13 @@ fn main() -> Result<(), anyhow::Error> {
 
         let highlighted_content = if is_rust_file {
             let id = vfs.file_id(&vfs_path).expect("failed to read file");
-            let content = std::str::from_utf8(vfs.file_contents(id))?;
+            let content = match std::str::from_utf8(vfs.file_contents(id)) {
+                Ok(content) => content,
+                Err(_) => {
+                    println!("WARNING! cannot read file {vfs:?}");
+                    continue;
+                }
+            };
             println!("highlight file {:?}", file_relative_path);
             highlight_rust_file_as_html(&host, &vfs, id, content)?
         } else {
@@ -394,7 +412,6 @@ fn main() -> Result<(), anyhow::Error> {
             "{PROJECT_NAME}/{}",
             file_relative_path.to_string_lossy().to_string()
         );
-        println!("{fname}");
         files_content.insert(fname, highlighted_content);
     }
     let s = html::generate(
