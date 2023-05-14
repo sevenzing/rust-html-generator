@@ -1,4 +1,6 @@
+pub mod args;
 pub mod css;
+pub mod handlers;
 pub mod highlights;
 pub mod html;
 pub mod js;

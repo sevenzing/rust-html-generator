@@ -71,7 +71,9 @@
 }
 .line-number {
     font-size: 14px;
-    color: #858585
+    color: #858585;
+    min-width: 50px; 
+    text-align: right;
 }
 .line-content {
     font-size: 14px;

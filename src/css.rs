@@ -46,6 +46,7 @@ lazy_static::lazy_static! {
         r#"
 body                { margin: 0; }
 div                 { display: inline-block }
+a { color: inherit; text-decoration: none; }
 .hovertext span {
 	background-color: rgba(0,0,0, 0.8);
     border-radius: 15px 15px 15px 0px;
