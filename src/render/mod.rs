@@ -3,7 +3,6 @@ mod traverse;
 use crate::jumps::Jumps;
 use ide::{HoverResult, TextRange};
 pub use render::{highlight_other_as_html, highlight_rust_file_as_html};
-use syntax::SyntaxToken;
 
 #[derive(Debug, Default)]
 pub struct HtmlToken {
@@ -16,9 +15,10 @@ pub struct HtmlToken {
 }
 
 impl HtmlToken {
-    pub fn from_range(range: TextRange) -> Self {
+    pub fn from_empty_info(range: TextRange, is_new_line: bool) -> Self {
         Self {
             range,
+            is_new_line,
             ..Default::default()
         }
     }

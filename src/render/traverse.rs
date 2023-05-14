@@ -80,11 +80,11 @@ pub fn traverse_syntax(
             }
             NodeOrToken::Token(token) => token,
         };
-        // if is_new_line(&token) {
-        //     let tokens = parse_whitespaces(token.text(), token.text_range().start().into());
-        //     result_tokens.extend(tokens)
-        //     continue;
-        // }
+        if is_new_line(&token) {
+            let tokens = parse_whitespaces(token.text(), token.text_range().start().into());
+            result_tokens.extend(tokens);
+            continue;
+        }
 
         let highlight = highlight_class(&token, hl_map.get(&range).cloned());
         let frange = FileRange { file_id, range };
@@ -180,18 +180,66 @@ fn is_new_line(syntax_token: &SyntaxToken) -> bool {
     syntax_token.kind() == SK::WHITESPACE && syntax_token.text().contains("\n")
 }
 
-fn parse_whitespaces(text: &str, mut start: u32) -> Vec<HtmlToken> {
-    let len = text.len();
+fn parse_whitespaces(text: &str, from: u32) -> Vec<HtmlToken> {
+    let len = text.split('\n').count();
     assert!(text.contains('\n'));
-    text.lines()
+
+    let mut shift = 0;
+    let tokens = text
+        .split('\n')
         .flat_map(|c| [c, "\n"])
         .take(2 * len - 1)
+        .filter(|c| !c.is_empty())
         .map(|c| {
-            let shift = c.len() as u32;
-            let end = start + shift;
+            let is_new_line = c == "\n";
+            let delta = c.len() as u32;
+            let start = from + shift;
+            let end = start + delta;
             let range = TextRange::new(start.into(), end.into());
-            start += shift;
-            HtmlToken::from_range(range)
+            shift += delta;
+            HtmlToken::from_empty_info(range, is_new_line)
         })
-        .collect()
+        .collect();
+    assert!(
+        shift == text.len() as u32,
+        "invalid invariant. shift: {shift}, len: {len}. text: {text:?}"
+    );
+    tokens
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn range(start: u32, end: u32) -> TextRange {
+        TextRange::new(start.into(), end.into())
+    }
+
+    #[test]
+    fn test_parse_whitespaces() {
+        for (text, expected) in [
+            (
+                "  \n\n  \n\n",
+                [
+                    (range(0, 2), false),
+                    (range(2, 3), true),
+                    (range(3, 4), true),
+                    (range(4, 6), false),
+                    (range(6, 7), true),
+                    (range(7, 8), true),
+                ]
+                .as_slice(),
+            ),
+            (
+                "\n    ",
+                [(range(0, 1), true), (range(1, 5), false)].as_slice(),
+            ),
+        ] {
+            let actual: Vec<_> = parse_whitespaces(text, 0)
+                .into_iter()
+                .map(|t| (t.range, t.is_new_line))
+                .collect();
+            assert_eq!(actual, expected)
+        }
+    }
 }

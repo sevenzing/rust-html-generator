@@ -84,6 +84,6 @@ fn main() -> Result<(), anyhow::Error> {
         files_content,
         root.file_name().unwrap().to_str().unwrap(),
     );
-    std::fs::write("output.html", s).expect("unable to write file");
+    std::fs::write(settings.output, s).expect("unable to write file");
     Ok(())
 }

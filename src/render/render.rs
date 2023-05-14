@@ -4,7 +4,7 @@ use hir::Semantics;
 use ide::{AnalysisHost, FileId};
 use serde::Serialize;
 use std::fmt::Display;
-use syntax::{ast::AstNode};
+use syntax::ast::AstNode;
 use tera::Context;
 use vfs::Vfs;
 
@@ -19,9 +19,6 @@ struct FoldingRange {
     start_line: u32,
     end_line: u32,
 }
-
-const NEW_LINE_HELPER: &str = "<<RUST_HL_NEW_LINE_HELPER>>";
-
 
 pub fn highlight_rust_file_as_html(
     host: &AnalysisHost,
@@ -52,10 +49,13 @@ pub fn highlight_rust_file_as_html(
         .collect();
 
     let lines: Vec<Line> = hightlight
-        .into_iter()
-        .map(|token| unwrap_token(file_content, &token, &settings))
-        .collect::<String>()
-        .split(NEW_LINE_HELPER)
+        .split_inclusive(|t| t.is_new_line)
+        .map(|tokens| {
+            tokens
+                .into_iter()
+                .map(|token| unwrap_token(file_content, &token, &settings))
+                .collect::<String>()
+        })
         .enumerate()
         .map(|(number, html_content)| Line {
             number: number + 1,
@@ -78,7 +78,6 @@ pub fn highlight_other_as_html(content: String) -> Result<String, anyhow::Error>
     render_lines(&lines, &[])
 }
 
-
 fn render_lines(lines: &[Line], folding_ranges: &[FoldingRange]) -> Result<String, anyhow::Error> {
     let mut context = Context::new();
     context.insert("lines", &lines);
@@ -87,15 +86,15 @@ fn render_lines(lines: &[Line], folding_ranges: &[FoldingRange]) -> Result<Strin
 }
 
 fn unwrap_token(file_content: &str, token: &HtmlToken, settings: &Settings) -> String {
-    if token.is_new_line {
-        let raw_chunk = &file_content[token.range];
-        raw_chunk.replace("\n", NEW_LINE_HELPER)
-    } else {
-        let raw_chunk = &file_content[token.range];
-        let chunk = html_escape::encode_text(raw_chunk).to_string();
-        let chunk = html_token_to_string(chunk, token, settings);
-        chunk.to_string()
-    }
+    // if token.is_new_line {
+    //     let raw_chunk = &file_content[token.range];
+    //     raw_chunk.replace("\n", NEW_LINE_HELPER)
+    // } else {
+    let raw_chunk = &file_content[token.range];
+    let chunk = html_escape::encode_text(raw_chunk).to_string();
+    let chunk = html_token_to_string(chunk, token, settings);
+    chunk.to_string()
+    //}
 }
 
 fn html_token_to_string(content: impl Display, token: &HtmlToken, settings: &Settings) -> String {
