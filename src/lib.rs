@@ -1,10 +1,10 @@
 pub mod args;
 pub mod css;
-pub mod handlers;
 pub mod highlights;
 pub mod html;
 pub mod js;
 pub mod jumps;
+pub mod render;
 pub mod templates;
 
 use std::{env, fs, path::PathBuf};

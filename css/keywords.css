@@ -1,0 +1,37 @@
+.escape_sequence               { color: #94BFF3; }
+.operator.unsafe               { color: #BC8383; }
+.module                        { color: #AFD8AF; }
+.string_literal                { color: #CC9393; }
+.enum_variant                  { color: #BDE0F3; }
+.variable                      { color: #DCDCCC; }
+.unresolved_reference          { color: #FC5555; text-decoration: wavy underline; }
+.type_param                    { color: #DFAF8F; }
+.keyword.unsafe                { color: #BC8383; font-weight: bold; }
+.trait.unsafe                  { color: #BC8383; }
+.mutable                       { text-decoration: underline; }
+.macro                         { color: #94BFF3; }
+.value_param                   { color: #DCDCCC; }
+.mutable.unsafe                { color: #BC8383; text-decoration: underline; }
+.function                      { color: #93E0E3; }
+.builtin_type                  { color: #8CD0D3; }
+.macro.unsafe                  { color: #BC8383; }
+.injected                      { opacity: 0.65 ; }
+.struct, .enum                 { color: #7CB8BB; }
+.reference                     { font-style: italic; font-weight: bold; }
+.attribute                     { color: #94BFF3; }
+.type                          { color: #7CB8BB; }
+.lifetime                      { color: #DFAF8F; font-style: italic; }
+.documentation                 { color: #629755; }
+.comment                       { color: #7F9F7F; }
+.control                       { font-style: italic; }
+.field                         { color: #94BFF3; }
+.keyword                       { color: #F0DFAF; font-weight: bold; }
+.derive                        { color: #94BFF3; font-style: italic; }
+.text                          { color: #DCDCCC; }
+.bool_literal                  { color: #BFE6EB; }
+.label                         { color: #DFAF8F; font-style: italic; }
+.function.unsafe               { color: #BC8383; }
+.format_specifier              { color: #CC696B; }
+.numeric_literal               { color: #BFEBBF; }
+.intra_doc_link                { font-style: italic; }
+.parameter                     { color: #94BFF3; }

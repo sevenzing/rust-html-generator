@@ -3,8 +3,8 @@ use ide_db::base_db::VfsPath;
 use rs_html::{
     args::Settings,
     get_analysis,
-    handlers::{highlight_other_as_html, highlight_rust_file_as_html},
     html::{self, MyPath},
+    render::{highlight_other_as_html, highlight_rust_file_as_html},
 };
 use std::{collections::HashMap, path::Path};
 

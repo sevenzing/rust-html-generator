@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use tera::Context;
 
-use crate::{css, js::TREE_SCRIPT, templates::TEMPLATES};
+use crate::{css, js::JAVA_SCRIPT, templates::TEMPLATES};
 
 #[derive(Debug)]
 pub struct MyPath {
@@ -114,19 +114,14 @@ fn traverse(tree: MyDir, prefix_path: &str) -> String {
     }
 }
 
-fn get_tree_script() -> String {
-    TREE_SCRIPT.to_string()
+fn get_java_script() -> String {
+    JAVA_SCRIPT.to_string()
 }
 
 fn save_files_in_html(files: HashMap<String, String>) -> String {
     files
         .into_iter()
-        .map(|(fname, content)| {
-            format!(
-                "
-<div id={fname} class='invisible'>{content}</div>"
-            )
-        })
+        .map(|(fname, content)| format!("<div id={fname} class='invisible'>{content}</div>"))
         .collect::<Vec<String>>()
         .join("\n\n")
 }
@@ -134,7 +129,7 @@ fn save_files_in_html(files: HashMap<String, String>) -> String {
 pub fn generate(filenames: Vec<MyPath>, files: HashMap<String, String>, dir: &str) -> String {
     let tree = MyDir::from_paths(filenames, dir);
     let tree = traverse(tree, "");
-    let script = get_tree_script();
+    let script = get_java_script();
     let styles = css::STYLE.to_string();
     let files = save_files_in_html(files);
 
