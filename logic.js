@@ -2,11 +2,14 @@ var inputs = document.getElementsByName("file");
 var content = document.getElementById("code");
 var current_file = null;
 
+var lockChanging = false;
+
 const update = () => {
     console.log('UPDATE')
     const params = new URLSearchParams(document.location.search);
     let filename = params.get('filename');
     selectFileWithName(filename)
+    treeClick(filename)
 
     let line_no = document.location.hash.replace('#L', '');
     let line_content = document.getElementById('LC' + line_no);
@@ -35,7 +38,7 @@ const treeClick = (filename) => {
 
 const treeClicked = (e) => {
     let filename = e.target.value;
-    showFile(filename)
+    if (!lockChanging) showFile(filename)
 }
 
 for (let i = 0; i < inputs.length; i++) {
@@ -62,21 +65,43 @@ const buildHrefFromJump = (filename, line_no) => {
     return url
 }
 
-const jumpTo = (jump_data) => {
+const jumpTo = (jump_data, pushHistory = false) => {
     console.log('jump to', jump_data)
     let from_url = buildHrefFromJump(jump_data['from']['file'], jump_data['from']['location']['start']['line']);
     let to_url = buildHrefFromJump(jump_data['to']['file'], jump_data['to']['location']['start']['line']);
 
-    window.history.back();
-    window.history.pushState({}, null, from_url);
-    window.history.pushState({}, null, to_url);
+    if (pushHistory) {
+        console.log('l: ', window.history.length)
+        pushHistoryStateSafe(from_url, window.location.href);
+        pushHistoryStateSafe(to_url, from_url);
+        console.log('l: ', window.history.length)
+    }
     selectFileWithName(jump_data['from']['file']);
     update();
 }
 
+const pushHistoryStateSafe = (href, prevHref) => {
+    if (window.location.href != href) {
+        console.log('push', href)
+        window.history.pushState({prevUrl: prevHref}, null, href);
+    } else {
+        console.log('history duplicate, ignore')
+    }
+}
+
+const replaceCurrentState = (href) => {
+    window.history.replaceState(window.history.state, null, href);
+}
+
+const handleBackButton = () => {
+    lockChanging = true;
+    update();
+    lockChanging = false;
+}
+
 const showFile = (filename) => {
     let url = buildHrefFromJump(filename, null);
-    window.history.pushState({}, null, url);
+    replaceCurrentState(url);
     selectFileWithName(filename);
     update();
 }
@@ -88,7 +113,7 @@ const initializeJumps = () => {
         j.onclick = function() {
             if (pressedKeys[META_KEY]) {
                 treeClick(jump_data['to']['file'])
-                jumpTo(jump_data)
+                jumpTo(jump_data, true)
             }
         }
     });
@@ -129,4 +154,5 @@ window.onkeydown = function(e) {
     if (e.keyCode == META_KEY) handleMetaDown();
 }
 
+window.onpopstate = handleBackButton
 
