@@ -81,12 +81,21 @@ pub fn traverse_syntax(
             NodeOrToken::Token(token) => token,
         };
         if is_new_line(&token) {
-            let tokens = parse_whitespaces(token.text(), token.text_range().start().into());
+            let tokens = parse_new_lines(token.text(), token.text_range().start().into(), None);
+            result_tokens.extend(tokens);
+            continue;
+        }
+        let highlight = highlight_class(&token, hl_map.get(&range).cloned());
+        if is_string(&token) {
+            let tokens = parse_new_lines(
+                token.text(),
+                token.text_range().start().into(),
+                highlight.clone(),
+            );
             result_tokens.extend(tokens);
             continue;
         }
 
-        let highlight = highlight_class(&token, hl_map.get(&range).cloned());
         let frange = FileRange { file_id, range };
         let fposition = FilePosition {
             file_id,
@@ -180,9 +189,12 @@ fn is_new_line(syntax_token: &SyntaxToken) -> bool {
     syntax_token.kind() == SK::WHITESPACE && syntax_token.text().contains("\n")
 }
 
-fn parse_whitespaces(text: &str, from: u32) -> Vec<HtmlToken> {
+fn is_string(syntax_token: &SyntaxToken) -> bool {
+    syntax_token.kind() == SK::STRING
+}
+
+fn parse_new_lines(text: &str, from: u32, highlight: Option<String>) -> Vec<HtmlToken> {
     let len = text.split('\n').count();
-    assert!(text.contains('\n'));
 
     let mut shift = 0;
     let tokens = text
@@ -197,7 +209,7 @@ fn parse_whitespaces(text: &str, from: u32) -> Vec<HtmlToken> {
             let end = start + delta;
             let range = TextRange::new(start.into(), end.into());
             shift += delta;
-            HtmlToken::from_empty_info(range, is_new_line)
+            HtmlToken::from_empty_info(range, is_new_line).with_highlight(highlight.clone())
         })
         .collect();
     assert!(
@@ -216,8 +228,9 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_whitespaces() {
+    fn test_parse_new_lines() {
         for (text, expected) in [
+            ("1234", [(range(0, 4), false)].as_slice()),
             (
                 "  \n\n  \n\n",
                 [
@@ -234,8 +247,25 @@ mod tests {
                 "\n    ",
                 [(range(0, 1), true), (range(1, 5), false)].as_slice(),
             ),
+            (
+                "hello\n\nworld\n\n\\n\n\nI am here\\n\\n\\n\n",
+                [
+                    (range(0, 5), false),
+                    (range(5, 6), true),
+                    (range(6, 7), true),
+                    (range(7, 12), false),
+                    (range(12, 13), true),
+                    (range(13, 14), true),
+                    (range(14, 16), false),
+                    (range(16, 17), true),
+                    (range(17, 18), true),
+                    (range(18, 33), false),
+                    (range(33, 34), true),
+                ]
+                .as_slice(),
+            ),
         ] {
-            let actual: Vec<_> = parse_whitespaces(text, 0)
+            let actual: Vec<_> = parse_new_lines(text, 0, None)
                 .into_iter()
                 .map(|t| (t.range, t.is_new_line))
                 .collect();

@@ -1,10 +1,10 @@
-use super::{traverse::traverse_syntax, HtmlToken};
-use crate::{args::Settings, templates::TEMPLATES};
+use super::traverse::traverse_syntax;
+use crate::{args::Settings, jumps::Jumps, templates::TEMPLATES};
 use hir::Semantics;
-use ide::{AnalysisHost, FileId};
+use ide::{AnalysisHost, FileId, HoverResult};
 use serde::Serialize;
 use std::fmt::Display;
-use syntax::ast::AstNode;
+use syntax::{ast::AstNode, TextRange};
 use tera::Context;
 use vfs::Vfs;
 
@@ -18,6 +18,78 @@ struct Line {
 struct FoldingRange {
     start_line: u32,
     end_line: u32,
+}
+
+#[derive(Debug, Default)]
+pub struct HtmlToken {
+    pub is_new_line: bool,
+    pub range: TextRange,
+    pub highlight: Option<String>,
+    pub hover_info: Option<HoverResult>,
+    pub type_info: Option<String>,
+    pub jumps: Option<Jumps>,
+}
+
+impl HtmlToken {
+    pub fn from_empty_info(range: TextRange, is_new_line: bool) -> Self {
+        Self {
+            range,
+            is_new_line,
+            ..Default::default()
+        }
+    }
+
+    pub fn with_highlight(mut self, highlight: Option<String>) -> Self {
+        self.highlight = highlight;
+        self
+    }
+
+    pub fn render(&self, file_content: &str, settings: &Settings) -> String {
+        let raw_chunk = &file_content[self.range];
+        let chunk = html_escape::encode_text(raw_chunk).to_string();
+        let chunk = self.render_with_highlight(chunk, settings);
+        chunk.to_string()
+    }
+
+    fn render_with_highlight(&self, content: impl Display, settings: &Settings) -> String {
+        if let Some(mut class) = self.highlight.clone() {
+            let hover_info = self
+                .hover_info
+                .as_ref()
+                .map(|h| h.markup.to_string())
+                .unwrap_or_default();
+            let mut hover_info = match hover_info.as_str() {
+                "()" => "",
+                "{unknown}" => "",
+                _ => &hover_info,
+            }
+            .to_string();
+            if hover_info.is_empty() && self.type_info.is_some() {
+                hover_info = self.type_info.as_ref().unwrap().clone();
+            }
+            if !hover_info.is_empty() {
+                hover_info = format!("<span>{}</span>", html_escape::encode_text(&hover_info))
+            }
+
+            let jump_attributes = self
+                .jumps
+                .as_ref()
+                .map(|jump| {
+                    if let Ok(jump_data) = jump.serialize(&settings.dir, &settings.project_name) {
+                        class.push_str(" jump");
+                        format!("jump-data=\"{}\"", jump_data)
+                    } else {
+                        Default::default()
+                    }
+                })
+                .unwrap_or_default();
+
+            return format!(
+                "<span class=\"hovertext {class}\" {jump_attributes}>{content}{hover_info}</span>",
+            );
+        };
+        content.to_string()
+    }
 }
 
 pub fn highlight_rust_file_as_html(
@@ -53,7 +125,7 @@ pub fn highlight_rust_file_as_html(
         .map(|tokens| {
             tokens
                 .into_iter()
-                .map(|token| unwrap_token(file_content, &token, &settings))
+                .map(|token| token.render(file_content, &settings))
                 .collect::<String>()
         })
         .enumerate()
@@ -83,58 +155,6 @@ fn render_lines(lines: &[Line], folding_ranges: &[FoldingRange]) -> Result<Strin
     context.insert("lines", &lines);
     let result = TEMPLATES.render("code.html", &context)?;
     Ok(result)
-}
-
-fn unwrap_token(file_content: &str, token: &HtmlToken, settings: &Settings) -> String {
-    // if token.is_new_line {
-    //     let raw_chunk = &file_content[token.range];
-    //     raw_chunk.replace("\n", NEW_LINE_HELPER)
-    // } else {
-    let raw_chunk = &file_content[token.range];
-    let chunk = html_escape::encode_text(raw_chunk).to_string();
-    let chunk = html_token_to_string(chunk, token, settings);
-    chunk.to_string()
-    //}
-}
-
-fn html_token_to_string(content: impl Display, token: &HtmlToken, settings: &Settings) -> String {
-    if let Some(mut class) = token.highlight.clone() {
-        let hover_info = token
-            .hover_info
-            .as_ref()
-            .map(|h| h.markup.to_string())
-            .unwrap_or_default();
-        let mut hover_info = match hover_info.as_str() {
-            "()" => "",
-            "{unknown}" => "",
-            _ => &hover_info,
-        }
-        .to_string();
-        if hover_info.is_empty() && token.type_info.is_some() {
-            hover_info = token.type_info.as_ref().unwrap().clone();
-        }
-        if !hover_info.is_empty() {
-            hover_info = format!("<span>{}</span>", html_escape::encode_text(&hover_info))
-        }
-
-        let jump_attributes = token
-            .jumps
-            .as_ref()
-            .map(|jump| {
-                if let Ok(jump_data) = jump.serialize(&settings.dir, &settings.project_name) {
-                    class.push_str(" jump");
-                    format!("jump-data=\"{}\"", jump_data)
-                } else {
-                    Default::default()
-                }
-            })
-            .unwrap_or_default();
-
-        return format!(
-            "<span class=\"hovertext {class}\" {jump_attributes}>{content}{hover_info}</span>",
-        );
-    };
-    content.to_string()
 }
 
 fn get_highlight_ranges(host: &AnalysisHost, vfs: &Vfs, file_id: FileId) -> Vec<HtmlToken> {
