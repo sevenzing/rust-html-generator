@@ -1,7 +1,7 @@
 <table>
 <tbody>
 {% for line in lines %}
-    <tr id="LT{{line.number}}" class="table-line">
+    <tr class="table-line" number="{{line.number}}">
         <td id="L{{line.number}}" class="prevent-select line-number">
             <a href="#L{{line.number}}">{{line.number}}</a>
         </td>
@@ -9,7 +9,8 @@
         <td
             id="LF{{line.number}}"
             class="prevent-select line-fold arrow arrow--right" 
-            data-fold-close-on="{{line.fold.end_line}}">
+            data-fold-start-line="{{line.fold.start_line}}"
+            data-fold-end-line="{{line.fold.end_line}}">
         </td>
         {% else %}
         <td></td>

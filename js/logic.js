@@ -120,7 +120,8 @@ const initializeJumps = () => {
 }
 
 const onFileChanged = () => {
-    initializeJumps()
+    initializeJumps();
+    initializeFolds();
 }
 
 const handleMetaUp = () => {
@@ -136,25 +137,49 @@ const handleMetaDown = () => {
 
 // folding
 const initializeFolds = () => {
-    document.querySelectorAll('.line-fold').forEach(fold => {
-        const closeOnLine = fold.getAttribute('data-fold-close-on');
+    document.querySelectorAll('.code-section .line-fold').forEach(fold => {
+        const startLine = Number(fold.getAttribute('data-fold-start-line'));
+        const endLine = Number(fold.getAttribute('data-fold-end-line'));
         fold.onclick = () => {
+            const mainContentLine = document.querySelectorAll(`.code-section #LC${startLine}`)[0];
+            const relatedLines = Array
+                .from(document.querySelectorAll(".code-section .table-line"))
+                .filter(el => {
+                    const n = el.getAttribute('number');
+                    return startLine < n && n < endLine
+                })
+
             const toClose = fold.classList.contains('arrow--right');
             if (toClose) {
-                fold.classList.remove('arrow--right');
-                fold.classList.add('arrow--down');
+                closeLines(relatedLines, fold, mainContentLine)
             } else {
-                fold.classList.remove('arrow--down');
-                fold.classList.add('arrow--right');
+                openLines(relatedLines, fold, mainContentLine)
             }
         }
     });
 }
 
+const closeLines = (lines, fold, mainLine) => {
+    fold.classList.remove('arrow--right');
+    fold.classList.add('arrow--down');
+    mainLine.classList.add('line-folded')
+    lines.forEach(line => {
+        line.style.display = 'none'
+    })
+}
+
+const openLines = (lines, fold, mainContentLine) => {
+    fold.classList.remove('arrow--down');
+    fold.classList.add('arrow--right');
+    mainContentLine.classList.remove('line-folded')
+    lines.forEach(line => {
+        line.style.display = ''
+    })
+}
+
 const main = () => {
     update();
-    initializeJumps();
-    initializeFolds();
+    onFileChanged();
 }
 
 const META_KEY = 91;
