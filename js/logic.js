@@ -134,10 +134,27 @@ const handleMetaDown = () => {
     })
 }
 
+// folding
+const initializeFolds = () => {
+    document.querySelectorAll('.line-fold').forEach(fold => {
+        const closeOnLine = fold.getAttribute('data-fold-close-on');
+        fold.onclick = () => {
+            const toClose = fold.classList.contains('arrow--right');
+            if (toClose) {
+                fold.classList.remove('arrow--right');
+                fold.classList.add('arrow--down');
+            } else {
+                fold.classList.remove('arrow--down');
+                fold.classList.add('arrow--right');
+            }
+        }
+    });
+}
 
 const main = () => {
-    update()
-    initializeJumps()
+    update();
+    initializeJumps();
+    initializeFolds();
 }
 
 const META_KEY = 91;

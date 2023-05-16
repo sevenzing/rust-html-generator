@@ -3,21 +3,29 @@ use crate::{args::Settings, jumps::Jumps, templates::TEMPLATES};
 use hir::Semantics;
 use ide::{AnalysisHost, FileId, HoverResult};
 use serde::Serialize;
-use std::fmt::Display;
+use std::{fmt::Display, collections::HashMap};
 use syntax::{ast::AstNode, TextRange};
 use tera::Context;
 use vfs::Vfs;
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct Line {
     number: usize,
     html_content: String,
+    //fold: Vec<Fold>
+    fold: Option<FoldingRange>
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct FoldingRange {
     start_line: u32,
     end_line: u32,
+}
+#[derive(Serialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+enum Fold {
+    Open,
+    Close
 }
 
 #[derive(Debug, Default)]
@@ -103,7 +111,7 @@ pub fn highlight_rust_file_as_html(
     let hightlight = get_highlight_ranges(host, vfs, file_id);
     println!("building html");
     let finder = host.analysis().file_line_index(file_id).unwrap();
-    let folding_ranges: Vec<FoldingRange> = host
+    let folding_ranges = host
         .analysis()
         .folding_ranges(file_id)
         .unwrap()
@@ -118,7 +126,13 @@ pub fn highlight_rust_file_as_html(
                 end_line: end_line + 1,
             }
         })
-        .collect();
+        .map(|r| (r.start_line, r))
+        .collect::<HashMap<_, _>>();
+    // let mut folds: HashMap<u32, Vec<Fold>> = Default::default();
+    // for fold_range in folding_ranges {
+    //     folds.entry(fold_range.start_line).or_default().push(Fold::Open);
+    //     folds.entry(fold_range.end_line).or_default().push(Fold::Close);
+    // }
 
     let lines: Vec<Line> = hightlight
         .split_inclusive(|t| t.is_new_line)
@@ -129,12 +143,16 @@ pub fn highlight_rust_file_as_html(
                 .collect::<String>()
         })
         .enumerate()
-        .map(|(number, html_content)| Line {
-            number: number + 1,
-            html_content: html_content.to_string(),
-        })
+        .map(|(number, html_content)| {
+            let number = number + 1;
+            Line {
+                number,
+                html_content: html_content.to_string(),
+                //fold: folds.entry(number as u32).or_default().to_vec(),
+                fold: folding_ranges.get(&(number as u32)).cloned()
+        }})
         .collect();
-    render_lines(&lines, &folding_ranges)
+    render_lines(&lines)
 }
 
 pub fn highlight_other_as_html(content: String) -> Result<String, anyhow::Error> {
@@ -145,12 +163,13 @@ pub fn highlight_other_as_html(content: String) -> Result<String, anyhow::Error>
         .map(|(number, html_content)| Line {
             number: number + 1,
             html_content: html_content.to_string(),
+            fold: Default::default(),
         })
         .collect::<Vec<_>>();
-    render_lines(&lines, &[])
+    render_lines(&lines)
 }
 
-fn render_lines(lines: &[Line], folding_ranges: &[FoldingRange]) -> Result<String, anyhow::Error> {
+fn render_lines(lines: &[Line]) -> Result<String, anyhow::Error> {
     let mut context = Context::new();
     context.insert("lines", &lines);
     let result = TEMPLATES.render("code.html", &context)?;
