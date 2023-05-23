@@ -1,4 +1,5 @@
-mod render;
-mod traverse;
+mod html_processor;
+mod html_generator;
 
-pub use render::{highlight_other_as_html, highlight_rust_file_as_html, HtmlToken};
+pub use html_processor::{HtmlProcessor, HtmlToken};
+pub use html_generator::{generate_other_file_html, generate_rust_file_html};

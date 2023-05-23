@@ -2,9 +2,8 @@ use clap::Parser;
 use ide_db::base_db::VfsPath;
 use rs_html::{
     args::Settings,
-    get_analysis,
     html::{self, MyPath},
-    render::{highlight_other_as_html, highlight_rust_file_as_html},
+    render::{generate_other_file_html, generate_rust_file_html, HtmlProcessor}, parser,
 };
 use std::{collections::HashMap, path::Path};
 
@@ -12,7 +11,8 @@ fn main() -> Result<(), anyhow::Error> {
     let settings = Settings::parse();
     let root = settings.dir.clone();
     assert!(root.is_dir());
-    let (host, vfs) = get_analysis(&root, settings.scan_whole).unwrap();
+    let (host, vfs) = parser::get_analysis(&root, settings.scan_whole).unwrap();
+    let processor = HtmlProcessor::new(host, vfs);
     let mut files = vec![];
     let mut files_content = HashMap::new();
 
@@ -57,19 +57,24 @@ fn main() -> Result<(), anyhow::Error> {
         files.push(MyPath::new(&file_relative_path.to_string_lossy()));
 
         let highlighted_content = if is_rust_file {
-            let id = vfs.file_id(&vfs_path).expect("failed to read file");
-            let content = match std::str::from_utf8(vfs.file_contents(id)) {
+            let file_id = processor
+                .vfs()
+                .file_id(&vfs_path)
+                .expect("failed to read file");
+            let content = match std::str::from_utf8(processor.vfs().file_contents(file_id)) {
                 Ok(content) => content,
                 Err(_) => {
-                    println!("WARNING! cannot read file {vfs:?}");
+                    println!("WARNING! cannot read file {vfs_path:?}");
                     continue;
                 }
             };
             println!("highlight file {:?}", file_relative_path);
-            highlight_rust_file_as_html(&host, &vfs, id, content, &settings)?
+            let hightlight = processor.get_highlight_ranges(file_id);
+            let folding_ranges = processor.get_folding_ranges(file_id);
+            generate_rust_file_html(hightlight, folding_ranges, content, &settings)?
         } else {
             let content = std::fs::read_to_string(path)?;
-            highlight_other_as_html(content)?
+            generate_other_file_html(content)?
         };
 
         let fname = format!(
