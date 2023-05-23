@@ -21,12 +21,7 @@ struct FoldingRange {
     start_line: u32,
     end_line: u32,
 }
-#[derive(Serialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(rename_all = "snake_case")]
-enum Fold {
-    Open,
-    Close
-}
+
 
 #[derive(Debug, Default)]
 pub struct HtmlToken {

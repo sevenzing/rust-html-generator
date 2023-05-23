@@ -71,10 +71,8 @@ const jumpTo = (jump_data, pushHistory = false) => {
     let to_url = buildHrefFromJump(jump_data['to']['file'], jump_data['to']['location']['start']['line']);
 
     if (pushHistory) {
-        console.log('l: ', window.history.length)
         pushHistoryStateSafe(from_url, window.location.href);
         pushHistoryStateSafe(to_url, from_url);
-        console.log('l: ', window.history.length)
     }
     selectFileWithName(jump_data['from']['file']);
     update();
