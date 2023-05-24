@@ -1,4 +1,4 @@
-use super::{html_processor::FoldingRange, static_files, HtmlToken};
+use crate::render::{html_processor::FoldingRange, static_files, HtmlToken};
 use crate::args::Settings;
 use serde::Serialize;
 use std::collections::HashMap;
