@@ -30,3 +30,4 @@ serde_with = "2.2.0"
 #rustc-hir = { git = "https://github.com/rust-lang/rust", version = "0.0.0"}
 tera = "1.17"
 clap = { version = "3", features = ["derive"] }
+minify-html = "0.11.1"

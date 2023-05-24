@@ -1,5 +1,7 @@
-pub mod app;
-pub mod args;
-pub mod highlights;
-pub mod parser;
-pub mod render;
+mod app;
+mod args;
+mod parser;
+mod render;
+
+pub use app::run_report_generator;
+pub use args::Settings;

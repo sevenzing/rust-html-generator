@@ -17,4 +17,7 @@ pub struct Settings {
 
     #[clap(short, long, value_parser, default_value_t = false)]
     pub scan_whole: bool,
+
+    #[clap(short, long, value_parser, default_value_t = false)]
+    pub no_compress: bool,
 }

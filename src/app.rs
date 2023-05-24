@@ -89,6 +89,7 @@ pub fn run_report_generator(settings: &Settings) -> Result<(), anyhow::Error> {
         files,
         files_content,
         root.file_name().unwrap().to_str().unwrap(),
+        settings.no_compress,
     );
     std::fs::write(&settings.output, s).expect("unable to write file");
     Ok(())

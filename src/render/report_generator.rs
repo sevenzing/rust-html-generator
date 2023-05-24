@@ -2,6 +2,8 @@ use crate::render::static_files;
 use std::collections::HashMap;
 use tera::Context;
 
+use super::compress_html;
+
 #[derive(Debug)]
 pub struct MyPath {
     pub parts: Vec<String>,
@@ -124,6 +126,7 @@ pub fn generate_report(
     filenames: Vec<MyPath>,
     files: HashMap<String, String>,
     dir: &str,
+    no_compress: bool,
 ) -> String {
     let tree = MyDir::from_paths(filenames, dir);
     let tree = traverse(tree, "");
@@ -136,7 +139,12 @@ pub fn generate_report(
     context.insert("script", &script);
     context.insert("styles", &styles);
     context.insert("files", &files);
-    static_files::templates::TEMPLATES
+    let content = static_files::templates::TEMPLATES
         .render("main.html", &context)
-        .unwrap()
+        .unwrap();
+    if no_compress {
+        content
+    } else {
+        compress_html(&content)
+    }
 }
