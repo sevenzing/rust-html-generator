@@ -10,7 +10,10 @@ use syntax::{
 };
 use vfs::Vfs;
 
-use super::{FoldingRange, HtmlToken, html_token::{JumpInfo, JumpLocation, Jumps}};
+use super::{
+    html_token::{JumpInfo, JumpLocation, Jumps},
+    FoldingRange, HtmlToken,
+};
 
 pub struct HtmlProcessor {
     host: AnalysisHost,
@@ -150,15 +153,11 @@ impl HtmlProcessor {
 
             let jumps = def
                 .map(|mut d| {
-                    d.info = d
-                        .info
-                        .into_iter()
-                        .filter(|t| {
-                            t.focus_range
-                                .map(|focus_range| focus_range != range)
-                                .unwrap_or(false)
-                        })
-                        .collect();
+                    d.info.retain(|t| {
+                        t.focus_range
+                            .map(|focus_range| focus_range != range)
+                            .unwrap_or(false)
+                    });
                     d
                 })
                 .and_then(|r| (!r.info.is_empty()).then_some(r))
@@ -204,17 +203,15 @@ impl HtmlProcessor {
 fn highlight_class(token: &SyntaxToken, ra_highlight: Option<Highlight>) -> Option<String> {
     if let Some(hl) = ra_highlight {
         Some(hl.to_string().replace('.', " "))
+    } else if syntax::ast::String::can_cast(token.kind()) {
+        Some("string_literal".into())
     } else {
-        if syntax::ast::String::can_cast(token.kind()) {
-            return Some("string_literal".into());
-        } else {
-            None
-        }
+        None
     }
 }
 
 fn is_new_line(syntax_token: &SyntaxToken) -> bool {
-    syntax_token.kind() == SK::WHITESPACE && syntax_token.text().contains("\n")
+    syntax_token.kind() == SK::WHITESPACE && syntax_token.text().contains('\n')
 }
 
 fn is_string(syntax_token: &SyntaxToken) -> bool {

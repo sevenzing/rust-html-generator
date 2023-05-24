@@ -1,9 +1,8 @@
-use std::collections::HashMap;
-use super::{html_processor::FoldingRange, HtmlToken};
-use crate::{args::Settings, templates::TEMPLATES};
+use super::{html_processor::FoldingRange, static_files, HtmlToken};
+use crate::args::Settings;
 use serde::Serialize;
+use std::collections::HashMap;
 use tera::Context;
-
 
 #[derive(Serialize, Clone)]
 struct Line {
@@ -22,8 +21,8 @@ pub fn generate_rust_file_html(
         .split_inclusive(|t| t.is_new_line)
         .map(|tokens| {
             tokens
-                .into_iter()
-                .map(|token| token.render(file_content, &settings))
+                .iter()
+                .map(|token| token.render(file_content, settings))
                 .collect::<String>()
         })
         .enumerate()
@@ -31,7 +30,7 @@ pub fn generate_rust_file_html(
             let number = number + 1;
             Line {
                 number,
-                html_content: html_content.to_string(),
+                html_content,
                 //fold: folds.entry(number as u32).or_default().to_vec(),
                 fold: folding_ranges.get(&(number as u32)).cloned(),
             }
@@ -57,6 +56,6 @@ pub fn generate_other_file_html(content: String) -> Result<String, anyhow::Error
 fn render_lines(lines: &[Line]) -> Result<String, anyhow::Error> {
     let mut context = Context::new();
     context.insert("lines", &lines);
-    let result = TEMPLATES.render("code.html", &context)?;
+    let result = static_files::templates::TEMPLATES.render("code.html", &context)?;
     Ok(result)
 }

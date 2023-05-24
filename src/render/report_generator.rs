@@ -1,7 +1,6 @@
+use crate::render::static_files;
 use std::collections::HashMap;
 use tera::Context;
-
-use crate::{css, js::JAVA_SCRIPT, templates::TEMPLATES};
 
 #[derive(Debug)]
 pub struct MyPath {
@@ -10,7 +9,7 @@ pub struct MyPath {
 impl MyPath {
     pub fn new(path: &str) -> MyPath {
         MyPath {
-            parts: path.to_string().split("/").map(|s| s.to_string()).collect(),
+            parts: path.to_string().split('/').map(|s| s.to_string()).collect(),
         }
     }
 }
@@ -18,7 +17,7 @@ impl MyPath {
 #[derive(Debug)]
 pub struct MyDir {
     name: String,
-    children: Vec<Box<MyDir>>,
+    children: Vec<MyDir>,
 }
 
 impl MyDir {
@@ -38,42 +37,37 @@ impl MyDir {
     }
 
     pub fn is_file(&self) -> bool {
-        return self.children.is_empty();
+        self.children.is_empty()
     }
 
     fn build_tree(node: &mut MyDir, parts: &Vec<String>, depth: usize) {
         if depth < parts.len() {
             let item = &parts[depth];
 
-            let mut dir = match node.find_child(&item) {
+            let dir = match node.find_child(item) {
                 Some(d) => d,
                 None => {
-                    let d = MyDir::new(&item);
+                    let d = MyDir::new(item);
                     node.add_child(d);
-                    match node.find_child(&item) {
+                    match node.find_child(item) {
                         Some(d2) => d2,
                         None => panic!("Got here!"),
                     }
                 }
             };
-            Self::build_tree(&mut dir, parts, depth + 1);
+            Self::build_tree(dir, parts, depth + 1);
         }
     }
 
     fn find_child(&mut self, name: &str) -> Option<&mut MyDir> {
-        for c in self.children.iter_mut() {
-            if c.name == name {
-                return Some(c);
-            }
-        }
-        None
+        self.children.iter_mut().find(|c| c.name == name)
     }
 
     fn add_child<T>(&mut self, leaf: T) -> &mut Self
     where
         T: Into<MyDir>,
     {
-        self.children.push(Box::new(leaf.into()));
+        self.children.push(leaf.into());
         self
     }
 }
@@ -96,7 +90,7 @@ fn traverse(tree: MyDir, prefix_path: &str) -> String {
         let result = tree
             .children
             .into_iter()
-            .map(|d| traverse(*d, &prefix_path))
+            .map(|d| traverse(d, &prefix_path))
             .collect::<Vec<String>>()
             .join("\n\n");
         format!(
@@ -115,7 +109,7 @@ fn traverse(tree: MyDir, prefix_path: &str) -> String {
 }
 
 fn get_java_script() -> String {
-    JAVA_SCRIPT.to_string()
+    static_files::js::JAVA_SCRIPT.to_string()
 }
 
 fn save_files_in_html(files: HashMap<String, String>) -> String {
@@ -126,11 +120,15 @@ fn save_files_in_html(files: HashMap<String, String>) -> String {
         .join("\n\n")
 }
 
-pub fn generate(filenames: Vec<MyPath>, files: HashMap<String, String>, dir: &str) -> String {
+pub fn generate_report(
+    filenames: Vec<MyPath>,
+    files: HashMap<String, String>,
+    dir: &str,
+) -> String {
     let tree = MyDir::from_paths(filenames, dir);
     let tree = traverse(tree, "");
     let script = get_java_script();
-    let styles = css::STYLE.to_string();
+    let styles = static_files::css::STYLE.to_string();
     let files = save_files_in_html(files);
 
     let mut context = Context::new();
@@ -138,5 +136,7 @@ pub fn generate(filenames: Vec<MyPath>, files: HashMap<String, String>, dir: &st
     context.insert("script", &script);
     context.insert("styles", &styles);
     context.insert("files", &files);
-    TEMPLATES.render("main.html", &context).unwrap()
+    static_files::templates::TEMPLATES
+        .render("main.html", &context)
+        .unwrap()
 }

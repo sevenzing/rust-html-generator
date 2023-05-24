@@ -3,21 +3,21 @@ use std::{env, path::PathBuf};
 use ide::AnalysisHost;
 use project_model::{CargoConfig, ProjectManifest, ProjectWorkspace, RustcSource};
 use rust_analyzer::cli::load_cargo::{load_workspace, LoadCargoConfig};
-use vfs::{AbsPathBuf, Vfs};
 use std::time::Instant;
+use vfs::{AbsPathBuf, Vfs};
 
 pub fn get_analysis(
     path: &PathBuf,
     scan_whole: bool,
 ) -> Result<(AnalysisHost, Vfs), anyhow::Error> {
-    let mut cargo_config = CargoConfig::default();
-
-    cargo_config.sysroot = if scan_whole {
-        Some(RustcSource::Discover)
-    } else {
-        None
+    let cargo_config = CargoConfig {
+        sysroot: if scan_whole {
+            Some(RustcSource::Discover)
+        } else {
+            None
+        },
+        ..Default::default()
     };
-    //cargo_config.sysroot = None;
 
     let load_cargo_config = LoadCargoConfig {
         load_out_dirs_from_check: true,

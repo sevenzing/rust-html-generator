@@ -1,16 +1,18 @@
-use clap::Parser;
-use ide_db::base_db::VfsPath;
-use rs_html::{
+use crate::{
     args::Settings,
-    html::{self, MyPath},
-    render::{generate_other_file_html, generate_rust_file_html, HtmlProcessor}, parser,
+    parser,
+    render::{
+        generate_other_file_html, generate_report, generate_rust_file_html, HtmlProcessor, MyPath,
+    },
 };
+use ide_db::base_db::VfsPath;
 use std::{collections::HashMap, path::Path};
 
-fn main() -> Result<(), anyhow::Error> {
-    let settings = Settings::parse();
+pub fn run_report_generator(settings: &Settings) -> Result<(), anyhow::Error> {
     let root = settings.dir.clone();
-    assert!(root.is_dir());
+    if !root.is_dir() {
+        return Err(anyhow::anyhow!("dir argument is not actual directory"));
+    };
     let (host, vfs) = parser::get_analysis(&root, settings.scan_whole).unwrap();
     let processor = HtmlProcessor::new(host, vfs);
     let mut files = vec![];
@@ -43,7 +45,6 @@ fn main() -> Result<(), anyhow::Error> {
                 .ancestors()
                 .any(|f| ignore.iter().any(|end| f.ends_with(end)))
         })
-    //.filter(|f| f.path().extension().map(|e| e == "rs").unwrap_or(false))
     {
         let path = entry.path();
         println!("INFO: walk to {path:?}");
@@ -71,7 +72,7 @@ fn main() -> Result<(), anyhow::Error> {
             println!("highlight file {:?}", file_relative_path);
             let hightlight = processor.get_highlight_ranges(file_id);
             let folding_ranges = processor.get_folding_ranges(file_id);
-            generate_rust_file_html(hightlight, folding_ranges, content, &settings)?
+            generate_rust_file_html(hightlight, folding_ranges, content, settings)?
         } else {
             let content = std::fs::read_to_string(path)?;
             generate_other_file_html(content)?
@@ -84,11 +85,11 @@ fn main() -> Result<(), anyhow::Error> {
         );
         files_content.insert(fname, highlighted_content);
     }
-    let s = html::generate(
+    let s = generate_report(
         files,
         files_content,
         root.file_name().unwrap().to_str().unwrap(),
     );
-    std::fs::write(settings.output, s).expect("unable to write file");
+    std::fs::write(&settings.output, s).expect("unable to write file");
     Ok(())
 }

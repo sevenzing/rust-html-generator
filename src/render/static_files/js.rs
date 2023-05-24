@@ -3,7 +3,7 @@ lazy_static::lazy_static! {
         [
             "js/logic.js",
         ].map(|name| {
-            std::fs::read_to_string(name).expect(&format!("cannot read file {name}"))
+            std::fs::read_to_string(name).unwrap_or_else(|_| panic!("cannot read file {name}"))
         }).join("\n")
     };
 }

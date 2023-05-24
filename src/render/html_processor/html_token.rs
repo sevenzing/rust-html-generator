@@ -1,12 +1,10 @@
-use crate::{args::Settings};
-use ide::HoverResult;
-use std::fmt::Display;
-use syntax::TextRange;
-use ide::{LineIndex};
+use crate::args::Settings;
+use ide::{HoverResult, LineIndex};
 use serde::{self, Serialize};
 use serde_json::Value;
 use serde_with::serde_as;
-use std::{path::Path, sync::Arc};
+use std::{fmt::Display, path::Path, sync::Arc};
+use syntax::TextRange;
 use vfs::VfsPath;
 
 #[derive(Debug, Default)]
@@ -18,8 +16,6 @@ pub struct HtmlToken {
     pub type_info: Option<String>,
     pub jumps: Option<Jumps>,
 }
-
-
 
 #[derive(Debug, Serialize)]
 pub struct LineCol {
@@ -49,7 +45,6 @@ pub struct JumpInfo {
     pub location: JumpLocation,
 }
 
-
 #[derive(Debug, Serialize)]
 pub struct JumpLocation {
     pub start: LineCol,
@@ -62,7 +57,7 @@ impl Jumps {
             "to": self.to.serialize(root, project_name)?,
             "from": self.from.serialize(root, project_name)?,
         }))?;
-        Ok(content.replace("\"", "'"))
+        Ok(content.replace('\"', "'"))
     }
 }
 
@@ -104,13 +99,9 @@ fn relative_path(vfs: &VfsPath, root: &Path, project_name: &str) -> Result<Strin
         .ok_or_else(|| anyhow::anyhow!("invalid vfs"))?
         .as_ref()
         .strip_prefix(root)?;
-    let s = format!(
-        "{project_name}/{}",
-        file_relative_path.to_string_lossy().to_string()
-    );
+    let s = format!("{project_name}/{}", file_relative_path.to_string_lossy());
     Ok(s)
 }
-
 
 impl HtmlToken {
     pub fn from_empty_info(range: TextRange, is_new_line: bool) -> Self {
@@ -129,8 +120,7 @@ impl HtmlToken {
     pub fn render(&self, file_content: &str, settings: &Settings) -> String {
         let raw_chunk = &file_content[self.range];
         let chunk = html_escape::encode_text(raw_chunk).to_string();
-        let chunk = self.render_with_highlight(chunk, settings);
-        chunk.to_string()
+        self.render_with_highlight(chunk, settings)
     }
 
     fn render_with_highlight(&self, content: impl Display, settings: &Settings) -> String {
