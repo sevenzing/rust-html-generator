@@ -20,6 +20,39 @@ pub struct MyDir {
     children: Vec<MyDir>,
 }
 
+#[derive(Default)]
+pub struct ReportGenerator {}
+
+impl ReportGenerator {
+    pub fn generate(
+        &self,
+        filenames: Vec<MyPath>,
+        files: HashMap<String, String>,
+        dir: &str,
+        no_compress: bool,
+    ) -> String {
+        let tree = MyDir::from_paths(filenames, dir);
+        let tree = traverse(tree, "");
+        let script = get_java_script();
+        let styles = static_files::css::STYLE.to_string();
+        let files = save_files_in_html(files);
+
+        let mut context = Context::new();
+        context.insert("tree", &tree);
+        context.insert("script", &script);
+        context.insert("styles", &styles);
+        context.insert("files", &files);
+        let content = static_files::templates::TEMPLATES
+            .render("main.html", &context)
+            .unwrap();
+        if no_compress {
+            content
+        } else {
+            compress_html(&content)
+        }
+    }
+}
+
 impl MyDir {
     pub fn from_paths(paths: Vec<MyPath>, top_dir_name: &str) -> MyDir {
         let mut top = Self::new(top_dir_name);
@@ -118,31 +151,4 @@ fn save_files_in_html(files: HashMap<String, String>) -> String {
         .map(|(fname, content)| format!("<div id={fname} class='invisible'>{content}</div>"))
         .collect::<Vec<String>>()
         .join("\n\n")
-}
-
-pub fn generate_report(
-    filenames: Vec<MyPath>,
-    files: HashMap<String, String>,
-    dir: &str,
-    no_compress: bool,
-) -> String {
-    let tree = MyDir::from_paths(filenames, dir);
-    let tree = traverse(tree, "");
-    let script = get_java_script();
-    let styles = static_files::css::STYLE.to_string();
-    let files = save_files_in_html(files);
-
-    let mut context = Context::new();
-    context.insert("tree", &tree);
-    context.insert("script", &script);
-    context.insert("styles", &styles);
-    context.insert("files", &files);
-    let content = static_files::templates::TEMPLATES
-        .render("main.html", &context)
-        .unwrap();
-    if no_compress {
-        content
-    } else {
-        compress_html(&content)
-    }
 }

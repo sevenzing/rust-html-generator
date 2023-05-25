@@ -54,7 +54,7 @@ pub struct FileInfo {
     pub content: String,
     pub ra_file_id: Option<FileId>,
     pub path: PathBuf,
-    pub file_relative_path: String,
+    pub relative_path: String,
 }
 
 pub fn scan(root: &PathBuf, vfs: &Vfs) -> Result<BTreeMap<String, FileInfo>, anyhow::Error> {
@@ -115,7 +115,7 @@ pub fn scan(root: &PathBuf, vfs: &Vfs) -> Result<BTreeMap<String, FileInfo>, any
                 content,
                 ra_file_id,
                 path: path.to_path_buf(),
-                file_relative_path: file_relative_path.to_string_lossy().to_string(),
+                relative_path: file_relative_path.to_string_lossy().to_string(),
             },
         );
     }
