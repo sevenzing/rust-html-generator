@@ -1,6 +1,10 @@
+use std::collections::HashMap;
+
 use ide::LineIndex;
 use serde::Serialize;
 use syntax::TextRange;
+
+pub type FoldingRanges = HashMap<u32, FoldingRange>;
 
 #[derive(Serialize, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FoldingRange {

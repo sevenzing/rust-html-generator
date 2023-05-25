@@ -1,7 +1,12 @@
-use crate::render::{html_processor::FoldingRange, static_files, HtmlToken};
-use crate::args::Settings;
+use crate::{
+    args::Settings,
+    render::{
+        static_files,
+        syntax_processor::{FoldingRange, FoldingRanges},
+        HtmlToken,
+    },
+};
 use serde::Serialize;
-use std::collections::HashMap;
 use tera::Context;
 
 #[derive(Serialize, Clone)]
@@ -13,7 +18,7 @@ struct Line {
 
 pub fn generate_rust_file_html(
     hightlight: Vec<HtmlToken>,
-    folding_ranges: HashMap<u32, FoldingRange>,
+    folding_ranges: FoldingRanges,
     file_content: &str,
     settings: &Settings,
 ) -> Result<String, anyhow::Error> {
@@ -39,7 +44,7 @@ pub fn generate_rust_file_html(
     render_lines(&lines)
 }
 
-pub fn generate_other_file_html(content: String) -> Result<String, anyhow::Error> {
+pub fn generate_other_file_html(content: &str) -> Result<String, anyhow::Error> {
     let content = html_escape::encode_text(&content).to_string();
     let lines = content
         .split('\n')

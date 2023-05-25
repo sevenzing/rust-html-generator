@@ -1,7 +1,6 @@
-use crate::render::{static_files, compress_html};
+use crate::render::{compress_html, static_files};
 use std::collections::HashMap;
 use tera::Context;
-
 
 #[derive(Debug)]
 pub struct MyPath {

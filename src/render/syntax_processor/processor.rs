@@ -11,25 +11,22 @@ use syntax::{
 use vfs::Vfs;
 
 use super::{
+    folding::FoldingRanges,
     html_token::{JumpInfo, JumpLocation, Jumps},
     FoldingRange, HtmlToken,
 };
 
-pub struct HtmlProcessor {
+pub struct SyntaxProcessor {
     host: AnalysisHost,
     vfs: Vfs,
 }
 
-impl HtmlProcessor {
+impl SyntaxProcessor {
     pub fn new(host: AnalysisHost, vfs: Vfs) -> Self {
         Self { host, vfs }
     }
 
-    pub fn vfs(&self) -> &Vfs {
-        &self.vfs
-    }
-
-    pub fn get_folding_ranges(&self, file_id: FileId) -> HashMap<u32, FoldingRange> {
+    pub fn get_folding_ranges(&self, file_id: FileId) -> FoldingRanges {
         let finder = self.line_finder(file_id);
         self.host
             .analysis()
@@ -38,10 +35,10 @@ impl HtmlProcessor {
             .into_iter()
             .map(|range| FoldingRange::new(&range.range, finder.as_ref()))
             .map(|r| (r.start_line, r))
-            .collect::<HashMap<_, _>>()
+            .collect()
     }
 
-    pub fn get_highlight_ranges(&self, file_id: FileId) -> Vec<HtmlToken> {
+    pub fn process_file(&self, file_id: FileId) -> Vec<HtmlToken> {
         let sema = Semantics::new(self.host.raw_database());
         let root = {
             let source_file = sema.parse(file_id);
