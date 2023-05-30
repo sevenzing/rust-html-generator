@@ -26,6 +26,7 @@ const selectFileWithName = (filename) => {
         current_file = filename
         let file_content = document.getElementById(filename);
         if (file_content != null) {
+            changeHeaderFilename(filename);
             content.innerHTML = file_content.innerHTML;
             onFileChanged()
         }
@@ -67,8 +68,8 @@ const buildHrefFromJump = (filename, line_no) => {
 
 const jumpTo = (jump_data, pushHistory = false) => {
     console.log('jump to', jump_data)
-    let from_url = buildHrefFromJump(jump_data['from']['file'], jump_data['from']['location']['start']['line']);
-    let to_url = buildHrefFromJump(jump_data['to']['file'], jump_data['to']['location']['start']['line']);
+    let from_url = buildHrefFromJump(jump_data['from']['file'], jump_data['from']['location']);
+    let to_url = buildHrefFromJump(jump_data['to']['file'], jump_data['to']['location']);
 
     if (pushHistory) {
         pushHistoryStateSafe(from_url, window.location.href);
@@ -102,6 +103,16 @@ const showFile = (filename) => {
     replaceCurrentState(url);
     selectFileWithName(filename);
     update();
+}
+
+const changeHeaderFilename = (filename) => {
+    const badge = document.querySelector('.filename > .badge')
+    if (filename) {
+        badge.style.display = ''
+        badge.innerHTML = filename
+    } else {
+        badge.style.display = 'none'
+    }
 }
 
 // Jumps
@@ -175,7 +186,35 @@ const openLines = (lines, fold, mainContentLine) => {
     })
 }
 
+const initializeResize = () => {
+    var resize = document.querySelector("#resize");
+    var tree = document.querySelector(".tree");
+    var left = document.querySelector(".left");
+    var content = document.querySelector(".content");
+    var moveX = tree.getBoundingClientRect().width + 
+                resize.getBoundingClientRect().width / 2;
+
+    var drag = false;
+    resize.addEventListener("mousedown", function (e) {
+        drag = true;
+        moveX = e.x;
+    });
+
+    content.addEventListener("mousemove", function (e) {
+    moveX = e.x;
+    if (drag)
+        tree.style.width =
+            moveX - resize.getBoundingClientRect().width / 2 + "px";
+        left.style.minWidth = tree.style.width;
+    });
+
+    content.addEventListener("mouseup", function (e) {
+        drag = false;
+    });
+}
+
 const main = () => {
+    initializeResize();
     update();
     onFileChanged();
 }

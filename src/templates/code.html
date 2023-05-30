@@ -1,4 +1,4 @@
-<table>
+<table class="table-code">
 <tbody>
 {% for line in lines %}
     <tr class="table-line" number="{{line.number}}">
@@ -15,7 +15,8 @@
         {% else %}
         <td></td>
         {% endif %}
-        <td id="LC{{line.number}}" class="line-content"><code><pre>{{line.html_content | safe}}</pre></code></td>
+        <td id="LC{{line.number}}" class="line-content"
+        ><code><pre>{{line.html_content | safe}}</pre></code></td>
     </tr>
 {% endfor %}
 </tbody>

@@ -12,7 +12,7 @@ use vfs::Vfs;
 
 use super::{
     folding::FoldingRanges,
-    html_token::{JumpInfo, JumpLocation, Jumps},
+    html_token::{JumpDestination, JumpLocation, Navigation},
     FoldingRange, HtmlToken,
 };
 
@@ -163,13 +163,13 @@ impl SyntaxProcessor {
                     let file = self.vfs.file_path(target.file_id);
                     let line_finder = analysis.file_line_index(target.file_id).unwrap();
                     let focus = target.focus_range.unwrap();
-                    let to = JumpInfo::from_focus(file, &focus, line_finder);
+                    let to = JumpDestination::from_focus(file, &focus, line_finder);
 
                     let origin_file = self.vfs.file_path(file_id);
                     let origin_line_finder = analysis.file_line_index(file_id).unwrap();
                     let origin_location = JumpLocation::from_focus(&range, origin_line_finder);
-                    let from = JumpInfo::new(origin_file, origin_location);
-                    Jumps { to, from }
+                    let from = JumpDestination::new(origin_file, origin_location);
+                    Navigation { to, from }
                 });
 
             let hover_info = {
@@ -188,7 +188,7 @@ impl SyntaxProcessor {
                 highlight,
                 hover_info,
                 type_info: type_map.get(&range).map(|h| h.label.to_string()),
-                jumps,
+                navigation: jumps,
             };
 
             result_tokens.push(html_token);

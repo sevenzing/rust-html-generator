@@ -4,17 +4,26 @@
 
 <div class="content">
     <div class="left">
-        <div>
+        <div class="tree">
             <div class="tnz-file-tree">
     {{tree | safe}}
             </div>
         </div>
     </div>
+    <div class="resize" id="resize"></div>
     <div class="right">
-        <div style="margin-top: 20px;">
-            <div id="code" class="box code-section">Select file from the left</div>
+        <div class="filename">
+            <div style="display: none;" class="badge"></div>
         </div>
-    </div> 
+        <div id="code" class="box code-section">
+            <div>
+                <div style="padding: 0 0 100 20;">
+                        <h3>Select file from the left</h3>
+                </div>
+            </div>
+            
+        </div>
+    </div>
 </div>
 
 <script>

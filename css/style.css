@@ -1,5 +1,5 @@
-body                { margin: 0; padding: 0;}
-div                 { display: inline-block }
+body                { margin: 0; padding: 0; }
+
 a { color: inherit; text-decoration: none; }
 .hovertext span {
 	background-color: rgba(0,0,0, 0.8);
@@ -26,26 +26,45 @@ a { color: inherit; text-decoration: none; }
 
 pre                 { color: #DCDCCC; }
 
+.hide {
+    display: none;
+}
 
 .content {
+    display: flex;
+    height: 100%;
     width: 100%;
-    position: relative;
-}
+ }
 
 .left {
-    float:left;
-    max-width: 200px;
-    width: 25%;
-    max-width: 250px;
-    height: 100%;
-}
+    min-width: 200px;
+    max-width: 600px;
+ }
 
-.right {
-    float:left;
-    width: 75%;
+ .tree {
+    width: 200px;
+ }
+
+ .right {
+    flex-grow: 1;
+    min-width: 600px;
+ }
+
+ .resize {
     height: 100%;
-    max-width: 800px;
-}
+    width: 5px;
+    cursor: col-resize;
+    background-color: #ccc;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+    transition: all 0.3s ease;
+ }
+
+ .resize:hover {
+    background-color: #027fd4
+ }
+
 
 .linesCounter {
     text-align: right;
@@ -94,12 +113,14 @@ pre                 { color: #DCDCCC; }
 
 .code-section { 
     color: #DCDCCC;
-    width: 100%;
+    height: 100vh;
+    overflow: auto;
     margin: 0;
     display: flex;
     flex-direction: row;
     font-size: 12px;
-    min-width: 600px;
+    margin-top: 10px;
+    margin-left: 10px;
 }
 
 .code-section pre {
@@ -109,10 +130,27 @@ pre                 { color: #DCDCCC; }
     height: max-content;
 }
 
+.table-code {
+    height: max-content;
+}
+
 .box {
     background-color: '#ffffff';
     border-color: '#d0d7de';
     border-radius: 6px;
     border-style: solid;
     border-width: 1px;
+}
+
+.badge {
+    font-family: monospace;
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background-color: #a6adaf; /* Choose your desired background color */
+    color: #ffffff; /* Choose your desired text color */
+}
+
+.filename {
+    margin: 10;
 }

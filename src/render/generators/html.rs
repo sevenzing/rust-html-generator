@@ -18,6 +18,9 @@ struct Line {
 pub struct HtmlGenerator {}
 
 impl HtmlGenerator {
+    pub fn new() -> Self {
+        Self::default()
+    }
     pub fn generate(
         &self,
         processor: &SyntaxProcessor,
@@ -39,9 +42,9 @@ impl HtmlGenerator {
         file_content: &str,
         settings: &Settings,
     ) -> Result<String, anyhow::Error> {
-        let hightlight = processor.process_file(file_id);
+        let tokens = processor.process_file(file_id);
         let folding_ranges = processor.get_folding_ranges(file_id);
-        let lines: Vec<Line> = hightlight
+        let lines: Vec<Line> = tokens
             .split_inclusive(|t| t.is_new_line)
             .map(|tokens| {
                 tokens

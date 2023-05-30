@@ -14,7 +14,7 @@ pub struct HtmlToken {
     pub highlight: Option<String>,
     pub hover_info: Option<HoverResult>,
     pub type_info: Option<String>,
-    pub jumps: Option<Jumps>,
+    pub navigation: Option<Navigation>,
 }
 
 #[derive(Debug, Serialize)]
@@ -33,14 +33,14 @@ impl From<ide::LineCol> for LineCol {
 }
 
 #[derive(Debug)]
-pub struct Jumps {
-    pub to: JumpInfo,
-    pub from: JumpInfo,
+pub struct Navigation {
+    pub to: JumpDestination,
+    pub from: JumpDestination,
 }
 
 #[serde_as]
 #[derive(Debug)]
-pub struct JumpInfo {
+pub struct JumpDestination {
     pub file: VfsPath,
     pub location: JumpLocation,
 }
@@ -51,7 +51,7 @@ pub struct JumpLocation {
     pub end: LineCol,
 }
 
-impl Jumps {
+impl Navigation {
     pub fn serialize(&self, root: &Path, project_name: &str) -> Result<String, anyhow::Error> {
         let content = serde_json::to_string(&serde_json::json!({
             "to": self.to.serialize(root, project_name)?,
@@ -61,7 +61,7 @@ impl Jumps {
     }
 }
 
-impl JumpInfo {
+impl JumpDestination {
     pub fn from_focus(file: VfsPath, focus: &TextRange, finder: Arc<LineIndex>) -> Self {
         Self {
             file,
@@ -76,7 +76,7 @@ impl JumpInfo {
         let file = self.serialize_file(root, project_name)?;
         Ok(serde_json::json!({
             "file": file,
-            "location": self.location,
+            "location": self.location.start.line,
         }))
     }
 
@@ -144,7 +144,7 @@ impl HtmlToken {
             }
 
             let jump_attributes = self
-                .jumps
+                .navigation
                 .as_ref()
                 .map(|jump| {
                     if let Ok(jump_data) = jump.serialize(&settings.dir, &settings.project_name) {

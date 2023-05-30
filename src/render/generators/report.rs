@@ -103,9 +103,22 @@ impl MyDir {
         self.children.push(leaf.into());
         self
     }
+
+
+    fn sort(&mut self) -> &mut Self {
+        self.children.sort_by_key(|child| {
+            (child.children.len() == 0, child.name.to_owned().to_lowercase())
+        });
+        for child in self.children.iter_mut() {
+            child.sort();
+        };
+
+        self
+    }
 }
 
-fn traverse(tree: MyDir, prefix_path: &str) -> String {
+fn traverse(mut tree: MyDir, prefix_path: &str) -> String {
+    tree.sort();
     let dirname = &tree.name;
 
     if tree.is_file() {

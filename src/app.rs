@@ -17,7 +17,7 @@ pub fn run_report_generator(settings: &Settings) -> Result<(), anyhow::Error> {
         .map(|file_info| MyPath::new(&file_info.relative_path))
         .collect();
     let processor = SyntaxProcessor::new(host, vfs);
-    let generator = HtmlGenerator::default();
+    let generator = HtmlGenerator::new();
     let report_generator = ReportGenerator::default();
 
     let files_content: HashMap<String, String> = files

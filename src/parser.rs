@@ -80,7 +80,6 @@ pub fn scan(root: &PathBuf, vfs: &Vfs) -> Result<BTreeMap<String, FileInfo>, any
     .collect();
     let mut files = BTreeMap::new();
     for entry in walkdir::WalkDir::new(root)
-        .sort_by_file_name()
         .follow_links(false)
         .into_iter()
         .filter_map(|e| e.ok())
@@ -92,12 +91,12 @@ pub fn scan(root: &PathBuf, vfs: &Vfs) -> Result<BTreeMap<String, FileInfo>, any
         })
     {
         let path = entry.path();
+        println!("INFO: walk to {path:?}");
         let content = std::fs::read_to_string(path)?;
         let file_relative_path = path
             .strip_prefix(root.clone())
             .expect("failed to extract relative path");
         let fname = format!("{}/{}", project_name, file_relative_path.to_string_lossy());
-        println!("INFO: walk to {path:?}");
         let is_rust_file: bool = path.extension().map(|e| e == "rs").unwrap_or(false);
         let ra_file_id = if is_rust_file {
             let vfs_path = VfsPath::new_real_path(path.to_string_lossy().to_string());
