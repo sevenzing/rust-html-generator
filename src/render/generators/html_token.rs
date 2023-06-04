@@ -29,7 +29,7 @@ impl From<ide::LineCol> for LineCol {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Navigation {
     #[serde(rename = "def")]
     pub definition: JumpDestination,
@@ -39,14 +39,14 @@ pub struct Navigation {
 }
 
 #[serde_as]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct JumpDestination {
     pub file: String,
     #[serde(rename = "loc")]
     pub location: JumpLocation,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct JumpLocation {
     pub line: u32,
 }

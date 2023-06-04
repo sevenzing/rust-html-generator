@@ -107,7 +107,7 @@ impl MyDir {
     fn sort(&mut self) -> &mut Self {
         self.children.sort_by_key(|child| {
             (
-                child.children.len() == 0,
+                child.children.is_empty(),
                 child.name.to_owned().to_lowercase(),
             )
         });

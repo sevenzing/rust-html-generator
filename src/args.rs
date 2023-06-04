@@ -36,3 +36,9 @@ impl Settings {
         settings
     }
 }
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self::new()
+    }
+}

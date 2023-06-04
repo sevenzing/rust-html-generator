@@ -2,7 +2,7 @@ use hir::Semantics;
 use ide::{
     Analysis, AnalysisHost, ClosureReturnTypeHints, FileId, FilePosition, FileRange, Highlight,
     HighlightConfig, HoverConfig, InlayHintsConfig, LineIndex, NavigationTarget,
-    ReferenceSearchResult, TextRange, SearchScope,
+    ReferenceSearchResult, SearchScope, TextRange,
 };
 use std::{collections::HashMap, path::Path, sync::Arc};
 use syntax::{
@@ -21,12 +21,16 @@ use super::{folding::FoldingRanges, FoldingRange};
 pub struct SyntaxProcessor {
     host: AnalysisHost,
     vfs: Vfs,
-    all_files: Vec<FileId>
+    all_files: Vec<FileId>,
 }
 
 impl SyntaxProcessor {
     pub fn new(host: AnalysisHost, vfs: Vfs, all_files: Vec<FileId>) -> Self {
-        Self { host, vfs, all_files}
+        Self {
+            host,
+            vfs,
+            all_files,
+        }
     }
 
     pub fn get_folding_ranges(&self, file_id: FileId) -> FoldingRanges {
@@ -151,14 +155,14 @@ impl SyntaxProcessor {
             let kind = token.kind();
             let useless =
                 kind.is_literal() || kind.is_keyword() || kind.is_punct() || kind.is_trivia();
-            let def = if !useless {
-                analysis
-                    .goto_definition(fposition)
-                    .expect("RA task cannot be cancelled")
-            } else {
-                None
-            };
-            
+            // let def = if !useless {
+            //     analysis
+            //         .goto_definition(fposition)
+            //         .expect("RA task cannot be cancelled")
+            // } else {
+            //     None
+            // };
+
             let ref_search = if !useless {
                 analysis
                     .find_all_refs(fposition, Some(search_scope.clone()))
@@ -166,29 +170,8 @@ impl SyntaxProcessor {
             } else {
                 None
             };
-
-
-            let definition = def
-                .map(|mut d| {
-                    d.info.retain(|t| {
-                        t.focus_range
-                            .map(|focus_range| focus_range != range)
-                            .unwrap_or(false)
-                    });
-                    d
-                })
-                .and_then(|r| (!r.info.is_empty()).then_some(r))
-                .and_then(|info| {
-                    let target = &info.info[0];
-                    jump_from_target(target, &self.vfs, &analysis, settings)
-                });
-            let from = jump_to_origin(frange, &self.vfs, &analysis, settings);
-            let references = jumps_from_ref_search(ref_search, &self.vfs, &analysis, settings);
-            let navigation = definition.map(|definition| Navigation {
-                definition,
-                references,
-                from,
-            });
+            let navigation =
+                navigation_from_search_results(ref_search, &self.vfs, &analysis, settings, frange);
 
             let hover_info = {
                 if token.kind() == SK::COMMENT {
@@ -242,12 +225,13 @@ fn jump_from_frange(
             return None;
         };
     let line_finder = analysis.file_line_index(frange.file_id).unwrap();
-    
-    Some(JumpDestination::from_focus(file_path, &frange.range, line_finder))
+
+    Some(JumpDestination::from_focus(
+        file_path,
+        &frange.range,
+        line_finder,
+    ))
 }
-
-
-
 
 fn jump_to_origin(
     frange: FileRange,
@@ -263,24 +247,23 @@ fn jump_to_origin(
     JumpDestination::new(origin_file_path, origin_location)
 }
 
-fn jumps_from_ref_search(
-    maybe_results: Option<Vec<ReferenceSearchResult>>,
+fn ref_jumps_from_ra_search(
+    maybe_results: &[ReferenceSearchResult],
     vfs: &Vfs,
     analysis: &Analysis,
     settings: &Settings,
 ) -> Vec<JumpDestination> {
     maybe_results
-        .unwrap_or_default()
-        .into_iter()
+        .iter()
         .flat_map(|search_result| {
             search_result
                 .references
-                .into_iter()
+                .iter()
                 .flat_map(|(file_id, refs)| {
-                    refs.into_iter().filter_map(move |(range, _maybe_category)| {
+                    refs.iter().filter_map(move |(range, _maybe_category)| {
                         let frange = FileRange {
-                            file_id: file_id.clone(),
-                            range
+                            file_id: *file_id,
+                            range: *range,
                         };
                         jump_from_frange(frange, vfs, analysis, settings)
                     })
@@ -288,6 +271,41 @@ fn jumps_from_ref_search(
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>()
+}
+
+fn def_jumps_from_ra_search(
+    maybe_results: &[ReferenceSearchResult],
+    vfs: &Vfs,
+    analysis: &Analysis,
+    settings: &Settings,
+) -> Vec<JumpDestination> {
+    maybe_results
+        .iter()
+        .filter_map(|search_result| {
+            search_result
+                .declaration
+                .as_ref()
+                .and_then(|decl| jump_from_target(&decl.nav, vfs, analysis, settings))
+        })
+        .collect()
+}
+
+fn navigation_from_search_results(
+    maybe_results: Option<Vec<ReferenceSearchResult>>,
+    vfs: &Vfs,
+    analysis: &Analysis,
+    settings: &Settings,
+    origin_frange: FileRange,
+) -> Option<Navigation> {
+    let maybe_results = maybe_results.unwrap_or_default();
+    let references = ref_jumps_from_ra_search(maybe_results.as_ref(), vfs, analysis, settings);
+    let definitions = def_jumps_from_ra_search(maybe_results.as_ref(), vfs, analysis, settings);
+    let from = jump_to_origin(origin_frange, vfs, analysis, settings);
+    definitions.first().map(|definition| Navigation {
+        definition: definition.to_owned(),
+        references,
+        from,
+    })
 }
 
 fn highlight_class(token: &SyntaxToken, ra_highlight: Option<Highlight>) -> Option<String> {
