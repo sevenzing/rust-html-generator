@@ -27,6 +27,7 @@ impl HtmlGenerator {
         file_info: FileInfo,
         settings: &Settings,
     ) -> Result<String, anyhow::Error> {
+        println!("start generate for file '{:?}'", file_info.relative_path);
         match file_info.ra_file_id {
             Some(file_id) => {
                 self.generate_rust_file_html(processor, file_id, &file_info.content, settings)
@@ -42,14 +43,14 @@ impl HtmlGenerator {
         file_content: &str,
         settings: &Settings,
     ) -> Result<String, anyhow::Error> {
-        let tokens = processor.process_file(file_id);
+        let tokens = processor.process_file(file_id, settings);
         let folding_ranges = processor.get_folding_ranges(file_id);
         let lines: Vec<Line> = tokens
             .split_inclusive(|t| t.is_new_line)
             .map(|tokens| {
                 tokens
                     .iter()
-                    .map(|token| token.render(file_content, settings))
+                    .map(|token| token.render(file_content))
                     .collect::<String>()
             })
             .enumerate()

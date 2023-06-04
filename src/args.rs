@@ -1,6 +1,5 @@
-use std::path::PathBuf;
-use std::fs;
 use clap::Parser;
+use std::{fs, path::PathBuf};
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -22,15 +21,15 @@ pub struct Settings {
     pub no_compress: bool,
 }
 
-
-
 impl Settings {
     pub fn new() -> Self {
         let mut settings = Self::parse();
         settings.dir = fs::canonicalize(&settings.dir).expect("cannot convert to absolute path");
-        let project_name = settings.dir
+        let project_name = settings
+            .dir
             .file_name()
-            .ok_or_else(|| anyhow::anyhow!("not a dir")).unwrap()
+            .ok_or_else(|| anyhow::anyhow!("not a dir"))
+            .unwrap()
             .to_string_lossy()
             .to_string();
         settings.project_name = project_name;

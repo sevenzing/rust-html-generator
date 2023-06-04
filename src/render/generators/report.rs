@@ -104,14 +104,16 @@ impl MyDir {
         self
     }
 
-
     fn sort(&mut self) -> &mut Self {
         self.children.sort_by_key(|child| {
-            (child.children.len() == 0, child.name.to_owned().to_lowercase())
+            (
+                child.children.len() == 0,
+                child.name.to_owned().to_lowercase(),
+            )
         });
         for child in self.children.iter_mut() {
             child.sort();
-        };
+        }
 
         self
     }

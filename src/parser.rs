@@ -50,6 +50,7 @@ pub fn get_analysis(
     Ok((host, vfs))
 }
 
+#[derive(Debug)]
 pub struct FileInfo {
     pub content: String,
     pub ra_file_id: Option<FileId>,

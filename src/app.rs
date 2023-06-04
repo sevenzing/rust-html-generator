@@ -16,7 +16,8 @@ pub fn run_report_generator(settings: &Settings) -> Result<(), anyhow::Error> {
         .values()
         .map(|file_info| MyPath::new(&file_info.relative_path))
         .collect();
-    let processor = SyntaxProcessor::new(host, vfs);
+    let rust_files = files.iter().filter_map(|f| f.1.ra_file_id).collect();
+    let processor = SyntaxProcessor::new(host, vfs, rust_files);
     let generator = HtmlGenerator::new();
     let report_generator = ReportGenerator::default();
 

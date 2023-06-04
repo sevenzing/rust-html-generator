@@ -1,11 +1,8 @@
-use crate::args::Settings;
 use ide::{HoverResult, LineIndex};
 use serde::{self, Serialize};
-use serde_json::Value;
 use serde_with::serde_as;
-use std::{fmt::Display, path::Path, sync::Arc};
+use std::{fmt::Display, sync::Arc};
 use syntax::TextRange;
-use vfs::VfsPath;
 
 #[derive(Debug, Default)]
 pub struct HtmlToken {
@@ -32,75 +29,46 @@ impl From<ide::LineCol> for LineCol {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Navigation {
-    pub to: JumpDestination,
+    #[serde(rename = "def")]
+    pub definition: JumpDestination,
+    #[serde(rename = "refs")]
+    pub references: Vec<JumpDestination>,
     pub from: JumpDestination,
 }
 
 #[serde_as]
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct JumpDestination {
-    pub file: VfsPath,
+    pub file: String,
+    #[serde(rename = "loc")]
     pub location: JumpLocation,
 }
 
 #[derive(Debug, Serialize)]
 pub struct JumpLocation {
-    pub start: LineCol,
-    pub end: LineCol,
-}
-
-impl Navigation {
-    pub fn serialize(&self, root: &Path, project_name: &str) -> Result<String, anyhow::Error> {
-        let content = serde_json::to_string(&serde_json::json!({
-            "to": self.to.serialize(root, project_name)?,
-            "from": self.from.serialize(root, project_name)?,
-        }))?;
-        Ok(content.replace('\"', "'"))
-    }
+    pub line: u32,
 }
 
 impl JumpDestination {
-    pub fn from_focus(file: VfsPath, focus: &TextRange, finder: Arc<LineIndex>) -> Self {
+    pub fn from_focus(file: String, focus: &TextRange, finder: Arc<LineIndex>) -> Self {
         Self {
             file,
             location: JumpLocation::from_focus(focus, finder),
         }
     }
-    pub fn new(file: VfsPath, location: JumpLocation) -> Self {
+    pub fn new(file: String, location: JumpLocation) -> Self {
         Self { file, location }
-    }
-
-    pub fn serialize(&self, root: &Path, project_name: &str) -> Result<Value, anyhow::Error> {
-        let file = self.serialize_file(root, project_name)?;
-        Ok(serde_json::json!({
-            "file": file,
-            "location": self.location.start.line,
-        }))
-    }
-
-    fn serialize_file(&self, root: &Path, project_name: &str) -> Result<String, anyhow::Error> {
-        relative_path(&self.file, root, project_name)
     }
 }
 
 impl JumpLocation {
     pub fn from_focus(focus: &TextRange, finder: Arc<LineIndex>) -> Self {
-        let start = finder.line_col(focus.start()).into();
-        let end = finder.line_col(focus.end()).into();
-        Self { start, end }
+        let start: LineCol = finder.line_col(focus.start()).into();
+        let line = start.line;
+        Self { line }
     }
-}
-
-fn relative_path(vfs: &VfsPath, root: &Path, project_name: &str) -> Result<String, anyhow::Error> {
-    let file_relative_path = vfs
-        .as_path()
-        .ok_or_else(|| anyhow::anyhow!("invalid vfs"))?
-        .as_ref()
-        .strip_prefix(root)?;
-    let s = format!("{project_name}/{}", file_relative_path.to_string_lossy());
-    Ok(s)
 }
 
 impl HtmlToken {
@@ -117,13 +85,13 @@ impl HtmlToken {
         self
     }
 
-    pub fn render(&self, file_content: &str, settings: &Settings) -> String {
+    pub fn render(&self, file_content: &str) -> String {
         let raw_chunk = &file_content[self.range];
         let chunk = html_escape::encode_text(raw_chunk).to_string();
-        self.render_with_highlight(chunk, settings)
+        self.render_with_highlight(chunk)
     }
 
-    fn render_with_highlight(&self, content: impl Display, settings: &Settings) -> String {
+    fn render_with_highlight(&self, content: impl Display) -> String {
         if let Some(mut class) = self.highlight.clone() {
             let hover_info = self
                 .hover_info
@@ -147,9 +115,9 @@ impl HtmlToken {
                 .navigation
                 .as_ref()
                 .map(|jump| {
-                    if let Ok(jump_data) = jump.serialize(&settings.dir, &settings.project_name) {
+                    if let Ok(jump_data) = serde_json::to_string(jump) {
                         class.push_str(" jump");
-                        format!("jump-data=\"{}\"", jump_data)
+                        format!("jump-data=\"{}\"", jump_data.replace('"', "'"))
                     } else {
                         Default::default()
                     }

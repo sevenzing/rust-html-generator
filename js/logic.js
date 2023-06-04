@@ -68,8 +68,8 @@ const buildHrefFromJump = (filename, line_no) => {
 
 const jumpTo = (jump_data, pushHistory = false) => {
     console.log('jump to', jump_data)
-    let from_url = buildHrefFromJump(jump_data['from']['file'], jump_data['from']['location']);
-    let to_url = buildHrefFromJump(jump_data['to']['file'], jump_data['to']['location']);
+    let from_url = buildHrefFromJump(jump_data['from']['file'], jump_data['from']['loc']['line']);
+    let to_url = buildHrefFromJump(jump_data['def']['file'], jump_data['def']['loc']['line']);
 
     if (pushHistory) {
         pushHistoryStateSafe(from_url, window.location.href);
@@ -117,15 +117,18 @@ const changeHeaderFilename = (filename) => {
 
 // Jumps
 const initializeJumps = () => {
-    document.querySelectorAll('.jump').forEach(j => {
-        const jump_data = JSON.parse(j.getAttribute('jump-data').replaceAll("'", '"'));
-        j.onclick = function() {
-            if (pressedKeys[META_KEY]) {
-                treeClick(jump_data['to']['file'])
-                jumpTo(jump_data, true)
+    document
+        .querySelectorAll('.code-section .jump')
+        .forEach(jump => {
+            const jump_data = JSON.parse(jump.getAttribute('jump-data').replaceAll("'", '"'));
+            jump.onclick = function() {
+                if (pressedKeys[META_KEY]) {
+                    treeClick(jump_data['def']['file'])
+                    jumpTo(jump_data, true)
+                }
             }
         }
-    });
+    );
 }
 
 const onFileChanged = () => {
