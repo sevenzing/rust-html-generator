@@ -66,16 +66,16 @@ const buildHrefFromJump = (filename, line_no) => {
     return url
 }
 
-const jumpTo = (jump_data, pushHistory = false) => {
-    console.log('jump to', jump_data)
-    let from_url = buildHrefFromJump(jump_data['from']['file'], jump_data['from']['loc']['line']);
-    let to_url = buildHrefFromJump(jump_data['def']['file'], jump_data['def']['loc']['line']);
+const jumpTo = (jumpDest, fromDest, pushHistory = false) => {
+    console.log('jump to', jumpDest)
+    let from_url = buildHrefFromJump(fromDest['file'], fromDest['loc']['line']);
+    let to_url = buildHrefFromJump(jumpDest['file'], jumpDest['loc']['line']);
 
     if (pushHistory) {
         pushHistoryStateSafe(from_url, window.location.href);
         pushHistoryStateSafe(to_url, from_url);
     }
-    selectFileWithName(jump_data['from']['file']);
+    selectFileWithName(jumpDest['file']);
     update();
 }
 
@@ -120,15 +120,50 @@ const initializeJumps = () => {
     document
         .querySelectorAll('.code-section .jump')
         .forEach(jump => {
-            const jump_data = JSON.parse(jump.getAttribute('jump-data').replaceAll("'", '"'));
-            jump.onclick = function() {
-                if (pressedKeys[META_KEY]) {
-                    treeClick(jump_data['def']['file'])
-                    jumpTo(jump_data, true)
-                }
+            if (!jump.classList.contains('jumpmenu')) {
+                const jump_data = JSON.parse(jump.getAttribute('jump-data').replaceAll("'", '"'));
+                var menu = document.createElement('div');
+                menu.innerHTML = buildInnerHTMLForJump(jump_data);
+                jump.appendChild(menu.lastChild)
+                jump.classList.add('jumpmenu')
             }
+            // const jump_data = JSON.parse(jump.getAttribute('jump-data').replaceAll("'", '"'));
+            // jump.onclick = function() {
+            //     if (pressedKeys[META_KEY]) {
+            //         treeClick(jump_data['def']['file'])
+            //         jumpTo(jump_data, true)
+            //     }
+            // }
         }
     );
+    initializeJumpsMenu();
+    initializeJumpButtons();
+}
+
+const buildInnerHTMLForJump = (jump_data) => {
+    const def = renderButton(jump_data['def'])
+    const refs = jump_data['refs'].map((ref) => renderButton(ref)).join('\n')
+
+    return `<div class="jump__content jump__content--below">
+    <div>
+        <div class="tab-container">
+        <div class="tab-header active definitions">Definitions</div>
+        <div class="tab-header references">References</div>
+        <div class="definitions tab-content">
+            ${def}
+        </div>
+        <div class="references tab-content hide">
+        <div class="column">
+            ${refs}
+        </div>
+        </div>
+    </div>
+    </div>
+    </div>`
+}
+
+const renderButton = (jumpDest) => {
+    return `<div class="row jump-button" jump_file='${jumpDest['file']}' jump_line='${jumpDest['loc']['line']}'>${jumpDest['file']}:${jumpDest['loc']['line']}</div>`
 }
 
 const onFileChanged = () => {
@@ -214,6 +249,68 @@ const initializeResize = () => {
     content.addEventListener("mouseup", function (e) {
         drag = false;
     });
+}
+
+const initializeJumpsMenu = () => {
+    const openClassName = 'is-open';
+    const jumpmenus = document.querySelectorAll('.code-section span.jump:not(.jumpmenu__content)');
+    const body = document.querySelector('body');
+    jumpmenus.forEach(function (jumpmenu) {
+        const onClick = (e) => {
+            e.stopPropagation();
+            if (e.target.classList.contains('jump') && e.target.classList.contains('jump-hover')) {
+                jumpmenu.classList.add(openClassName); 
+            }
+        }
+        jumpmenu.addEventListener('click', onClick);
+    });
+
+    body.addEventListener('click', function (e) {
+        if (!e.target.classList.contains('jump')) {
+            const openJumpmenus = document.querySelectorAll('.jump.' + openClassName);
+            openJumpmenus.forEach(function (jumpmenu) {
+                jumpmenu.classList.remove(openClassName);
+            });
+        }
+    });
+
+    document.querySelectorAll('.code-section .tab-container').forEach((tab) => {
+        const def_header = tab.querySelector('.tab-header.definitions');
+        const ref_header = tab.querySelector('.tab-header.references');
+
+        def_header.addEventListener('click', (e) => {
+            tab.querySelector('.tab-content.references').classList.add('hide')
+            tab.querySelector('.tab-content.definitions').classList.remove('hide')
+            ref_header.classList.remove('active')
+            def_header.classList.add('active')
+        })
+
+        tab.querySelector('.tab-header.references').addEventListener('click', (e) => {
+            tab.querySelector('.tab-content.definitions').classList.add('hide')
+            tab.querySelector('.tab-content.references').classList.remove('hide')
+            def_header.classList.remove('active')
+            ref_header.classList.add('active')
+        })
+    })
+}
+
+const initializeJumpButtons = () => {
+    document.querySelectorAll('.code-section .jump-button').forEach((btn) => {
+        btn.onclick = () => {
+            const jump = btn.closest('.jump');
+            const jump_data = JSON.parse(jump.getAttribute('jump-data').replaceAll("'", '"'));
+            const jump_file = btn.getAttribute('jump_file');
+            const jump_line = btn.getAttribute('jump_line');
+            treeClick(jump_file)
+            jumpTo({
+                file: jump_file,
+                loc: {
+                    line: jump_line
+                },
+            }, jump_data['from'], true)
+
+            }
+    })
 }
 
 const main = () => {

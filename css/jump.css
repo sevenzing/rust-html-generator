@@ -1,0 +1,97 @@
+
+    .jump__content {
+    position: absolute;
+    z-index: 1;
+    width: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 150ms 100ms,
+                transform 150ms 100ms,
+                visibility 0s 250ms;
+  
+    
+    min-width: 160px;
+    max-width: 240px;
+  
+    
+    padding: 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  
+    color: rgb(40, 40, 40);
+    cursor: default;
+  }
+  
+  .jump.is-open .jump__content
+  {
+    opacity: 1;
+    visibility: visible;
+    transform: translate3d(0,0,0) !important;
+    transition: opacity 250ms 400ms,
+                transform 250ms 400ms,
+                visibility 0s 400ms;
+  }
+  
+  .jump__content--below {
+    transform: translate3d(0, -10px, 0);
+  }
+  .jump__content--above {
+    bottom: 100%;
+    transform: translate3d(0, 10px, 0);
+  }
+  .jump__content--left {
+    top: 0;
+    right: 100%;
+    transform: translate3d(10px, 0, 0);
+  }
+  .jump__content--right {
+    top: 0;
+    left: 100%;
+    transform: translate3d(-10px, 0, 0);
+  }
+
+  
+  /* Tabs container */
+  .tab-container {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      overflow: hidden;
+      max-width: 300px;
+  }
+  
+  /* Tab headers */
+  .tab-header {
+      background-color: #f2f2f2;
+      padding: 10px;
+      float: left;
+      width: 50%;
+      box-sizing: border-box;
+      text-align: center;
+      cursor: pointer;
+  }
+  
+  /* Active tab header */
+  .tab-header.active {
+      text-decoration: underline;
+      text-decoration-color: orange;
+      
+  }
+  .tab-header:hover {
+      background-color: #f9f9f9;
+  }
+  
+  /* Tab content */
+  .tab-content {
+      padding: 10px;
+      background-color: #f9f9f9;
+      clear: both;
+  }
+  
+  /* Hidden tab content */
+  .tab-content.hide {
+      display: none;
+  }
+
+  .row {
+    font-size: 10px;
+  }

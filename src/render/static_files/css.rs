@@ -6,6 +6,7 @@ lazy_static::lazy_static! {
             "css/tree_style.css",
             "css/svgs.css",
             "css/fold.css",
+            "css/jump.css",
         ].map(|name| {
             std::fs::read_to_string(name).unwrap_or_else(|_| panic!("cannot read file {name}"))
         }).join("\n")
