@@ -145,25 +145,26 @@ const buildInnerHTMLForJump = (jump_data) => {
     const refs = jump_data['refs'].map((ref) => renderButton(ref)).join('\n')
 
     return `<div class="jump__content jump__content--below">
-    <div>
         <div class="tab-container">
-        <div class="tab-header active definitions">Definitions</div>
-        <div class="tab-header references">References</div>
-        <div class="definitions tab-content">
-            ${def}
+            <div class="tab-headers">
+                <div class="tab-header active definitions">Definitions</div>
+                <div class="tab-header references">References</div>
+            </div>
+
+            <div class="definitions tab-content">
+                ${def}
+            </div>
+            <div class="references tab-content hide">
+                ${refs}
+            </div>
         </div>
-        <div class="references tab-content hide">
-        <div class="column">
-            ${refs}
-        </div>
-        </div>
-    </div>
-    </div>
     </div>`
 }
 
 const renderButton = (jumpDest) => {
-    return `<div class="row jump-button" jump_file='${jumpDest['file']}' jump_line='${jumpDest['loc']['line']}'>${jumpDest['file']}:${jumpDest['loc']['line']}</div>`
+    const f = jumpDest['file'];
+    const l = jumpDest['loc']['line'];
+    return `<div class="row jump-button" jump_file='${f}' jump_line='${l}'>${f}:${l}</div>`
 }
 
 const onFileChanged = () => {

@@ -7,13 +7,18 @@ a { color: inherit; text-decoration: none; }
     box-shadow: 1px 1px 10px rgb(0 0 0 / 50%);
     color: #fff;
     margin-left: 2px;
-    margin-top: -30px;
     opacity: 0;
     padding: 10px 10px 10px 10px;
     position: absolute;
     text-decoration: none;
     visibility: hidden;
     z-index: 0;
+    bottom: 5px;
+    
+}
+
+.hovertext{
+    position: relative;
 }
 
 .hovertext:hover span {
@@ -121,6 +126,7 @@ pre                 { color: #DCDCCC; }
     font-size: 12px;
     margin-top: 10px;
     margin-left: 10px;
+    position: relative;
 }
 
 .code-section pre {
