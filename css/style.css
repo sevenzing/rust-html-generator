@@ -14,14 +14,14 @@ a { color: inherit; text-decoration: none; }
     visibility: hidden;
     z-index: 0;
     bottom: 5px;
-    
+
 }
 
-.hovertext{
+.hovertext {
     position: relative;
 }
 
-.hovertext:hover span {
+.hovertext span.hovered {
 	opacity: 1;
 	visibility: visible;
 }

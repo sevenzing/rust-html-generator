@@ -170,6 +170,7 @@ const renderButton = (jumpDest) => {
 const onFileChanged = () => {
     initializeJumps();
     initializeFolds();
+    initializeHoverTimers();
 }
 
 const handleMetaUp = () => {
@@ -311,6 +312,23 @@ const initializeJumpButtons = () => {
             }, jump_data['from'], true)
 
             }
+    })
+}
+
+const initializeHoverTimers = () => {
+    document.querySelectorAll('.code-section .hovertext').forEach((text) => {
+        const span = text.querySelector('span');
+        var timeout;
+        text.addEventListener('mouseenter', (e) => {
+            timeout = setTimeout(() => {
+                span.classList.add('hovered');
+              }, 1000);
+        })
+
+        text.addEventListener('mouseleave', (e) => {
+            clearTimeout(timeout);
+            span.classList.remove('hovered');
+        })
     })
 }
 
