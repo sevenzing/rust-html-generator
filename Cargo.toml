@@ -1,6 +1,6 @@
 [package]
-name = "rs-html"
-version = "0.2.0"
+name = "rust-html-generator"
+version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

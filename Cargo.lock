@@ -1857,35 +1857,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rs-html"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "clap",
- "colored",
- "hir",
- "hir-def",
- "html-escape",
- "ide",
- "ide-db",
- "lazy_static",
- "minify-html",
- "phf",
- "proc-macro2",
- "project-model",
- "quote",
- "rust-analyzer",
- "serde",
- "serde_json",
- "serde_with",
- "syn",
- "syntax",
- "tera",
- "vfs",
- "walkdir",
-]
-
-[[package]]
 name = "rust-analyzer"
 version = "0.0.0"
 dependencies = [
@@ -1929,6 +1900,35 @@ dependencies = [
  "vfs-notify",
  "winapi",
  "xflags",
+]
+
+[[package]]
+name = "rust-html-generator"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "colored",
+ "hir",
+ "hir-def",
+ "html-escape",
+ "ide",
+ "ide-db",
+ "lazy_static",
+ "minify-html",
+ "phf",
+ "proc-macro2",
+ "project-model",
+ "quote",
+ "rust-analyzer",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "syn",
+ "syntax",
+ "tera",
+ "vfs",
+ "walkdir",
 ]
 
 [[package]]
