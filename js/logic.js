@@ -35,7 +35,26 @@ const selectFileWithName = (filename) => {
 
 const treeClick = (filename) => {
     document.querySelector(`input[value='${filename}']`).click()
+    iteratePathComponents(filename).forEach((pathComponent) => {
+        const i = document.querySelector(`input[value='${pathComponent}']`);
+        if (i && !i.checked) {
+            i.click()
+        }
+    })
 }
+
+const iteratePathComponents = (path) => {
+    const components = path.split('/').filter(Boolean); // Split the path and remove empty components
+  
+    const result = components.reduce((acc, component) => {
+      const prevComponent = acc.length ? acc[acc.length - 1] : '';
+      const currentComponent = prevComponent + component + '/'
+      acc.push(currentComponent);
+      return acc;
+    }, []);
+  
+    return result;
+  }
 
 const treeClicked = (e) => {
     let filename = e.target.value;
@@ -147,14 +166,14 @@ const buildInnerHTMLForJump = (jump_data) => {
     return `<div class="jump__content jump__content--below">
         <div class="tab-container">
             <div class="tab-headers">
-                <div class="tab-header active definitions">Definitions</div>
-                <div class="tab-header references">References</div>
+                <div class="tab-header active jump-definitions">Definitions</div>
+                <div class="tab-header jump-references">References</div>
             </div>
 
-            <div class="definitions tab-content">
+            <div class="jump-definitions tab-content">
                 ${def}
             </div>
-            <div class="references tab-content hide">
+            <div class="jump-references tab-content hide">
                 ${refs}
             </div>
         </div>
@@ -277,19 +296,19 @@ const initializeJumpsMenu = () => {
     });
 
     document.querySelectorAll('.code-section .tab-container').forEach((tab) => {
-        const def_header = tab.querySelector('.tab-header.definitions');
-        const ref_header = tab.querySelector('.tab-header.references');
+        const def_header = tab.querySelector('.tab-header.jump-definitions');
+        const ref_header = tab.querySelector('.tab-header.jump-references');
 
         def_header.addEventListener('click', (e) => {
-            tab.querySelector('.tab-content.references').classList.add('hide')
-            tab.querySelector('.tab-content.definitions').classList.remove('hide')
+            tab.querySelector('.tab-content.jump-references').classList.add('hide')
+            tab.querySelector('.tab-content.jump-definitions').classList.remove('hide')
             ref_header.classList.remove('active')
             def_header.classList.add('active')
         })
 
-        tab.querySelector('.tab-header.references').addEventListener('click', (e) => {
-            tab.querySelector('.tab-content.definitions').classList.add('hide')
-            tab.querySelector('.tab-content.references').classList.remove('hide')
+        tab.querySelector('.tab-header.jump-references').addEventListener('click', (e) => {
+            tab.querySelector('.tab-content.jump-definitions').classList.add('hide')
+            tab.querySelector('.tab-content.jump-references').classList.remove('hide')
             def_header.classList.remove('active')
             ref_header.classList.add('active')
         })
@@ -338,19 +357,20 @@ const main = () => {
     onFileChanged();
 }
 
-const META_KEY = 91;
+const META_KEYS = [91, 17];
 var pressedKeys = {};
 
 window.onload = main
 window.onhashchange = update
 window.onkeyup = function(e) { 
     pressedKeys[e.keyCode] = false; 
-    if (e.keyCode == META_KEY) handleMetaUp();
+    if (META_KEYS.includes(e.keyCode)) handleMetaUp();
 }
 window.onkeydown = function(e) { 
     pressedKeys[e.keyCode] = true;
-    if (e.keyCode == META_KEY) handleMetaDown();
+    if (META_KEYS.includes(e.keyCode)) handleMetaDown();
 }
 
 window.onpopstate = handleBackButton
+
 

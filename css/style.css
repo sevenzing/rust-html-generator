@@ -97,11 +97,6 @@ pre                 { color: #DCDCCC; }
     padding: 0 0 0 20;
 }
 
-.jump-hover:hover {
-    cursor: pointer;
-    text-shadow: 0px 0px 1px #555;
-    color: #2b4bdecf;
-}
 
 .invisible {
     visibility: hidden;

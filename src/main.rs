@@ -1,4 +1,4 @@
-use rs_html::{run_report_generator, Settings};
+use rust_html_generator::{run_report_generator, Settings};
 
 fn main() -> Result<(), anyhow::Error> {
     let settings = Settings::new();

@@ -4,7 +4,7 @@
 .string_literal                { color: #CC9393; }
 .enum_variant                  { color: #BDE0F3; }
 .variable                      { color: #DCDCCC; }
-.unresolved_reference          { color: #FC5555; text-decoration: wavy underline; }
+/* .unresolved_reference          { color: #FC5555; text-decoration: wavy underline; } */
 .type_param                    { color: #DFAF8F; }
 .keyword.unsafe                { color: #BC8383; font-weight: bold; }
 .trait.unsafe                  { color: #BC8383; }

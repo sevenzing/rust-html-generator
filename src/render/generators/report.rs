@@ -144,7 +144,7 @@ fn traverse(mut tree: MyDir, prefix_path: &str) -> String {
         format!(
             r#"
 <label class="tnz-file-tree-item dir">
-<input class="tnz-file-tree-cb" type="checkbox">
+<input class="tnz-file-tree-cb" type="checkbox" value="{prefix_path}">
 
 <span class="tnz-file-tree-label">{dirname}</span>
 <div class="tnz-file-tree-branches">

@@ -1,5 +1,10 @@
 
-    .jump__content {
+.jump-hover:hover {
+  cursor: pointer;
+  text-shadow: 0px 0px 1px #555;
+  background-color: #5687f295;
+}
+.jump__content {
     position: absolute;
     z-index: 1;
     width: 100%;
@@ -9,15 +14,18 @@
                 transform 150ms 100ms,
                 visibility 0s 250ms;
     min-width: 160px;
-    max-width: 240px;
     width: max-content;
-    padding: 6px;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 14px;
     color: rgb(40, 40, 40);
     cursor: default;
     text-shadow:none;
+    top: 0;
+    left: 0;
+    font-style: normal;
+    font-weight: normal;
   }
+  
   
   .jump.is-open .jump__content
   {
@@ -53,7 +61,6 @@
       border: 1px solid #ccc;
       border-radius: 4px;
       overflow: hidden;
-      max-width: 300px;
       display: flex;
       flex-direction: column;
   }
@@ -91,7 +98,7 @@
   }
 
   .row {
-    font-size: 10px;
+    font-size: 12px;
     counter-increment: rows-counter;
   }
   .row::before {
