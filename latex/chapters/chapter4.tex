@@ -1,0 +1,194 @@
+\chapter{Implementation}
+\label{chap:impl}
+
+The implementation section of this thesis provides a detailed account of the code written to accomplish the project's objectives. This section is essential as it offers insights into the technical aspects of the implementation process and demonstrates how the different modules work together to achieve the desired functionality. The section covers four main modules: Parser \ref{chap:impl:parser}, Syntax Processor \ref{chap:impl:processor}, HTML Generator \ref{chap:impl:generator}, and Report Generation \ref{chap:impl:report_generator}. By providing a comprehensive overview of the implementation process and the functionalities of each module, this section allows readers to gain a deeper understanding of the technical aspects behind the project's execution.
+
+
+\section{Parser}
+\label{chap:impl:parser}
+The parser module is responsible for the implementation of a straightforward logic consisting of four steps. These steps involve scanning the directory, filtering the files, passing the files to Rust-analyzer, and generating a convenient response for the subsequent module.
+
+The scanning process involves a recursive traversal of the target directory to locate the \textbf{Cargo.toml} file to find the root path of a Rust project. While this step is relatively unremarkable, it serves as a necessary foundation for subsequent operations.
+
+Filtering assumes significance as it aims to include not only the .rs Rust files but also various other files such as configuration files and templates. However, it is essential to exclude certain files, such as build outputs, temp files, and the GIT directory, to avoid an excessive number of irrelevant files. To address this, we have devised a solution utilizing predefined glob patterns that allow us to ignore specific files and directories, such as the \textbf{/target}, \textbf{/.git}, \textbf{.vscode} directories . Additionally, we take into consideration the presence of a \textbf{.gitignore} file within the target project, as it may already contain relevant information about files to be ignored.
+
+Following the filtering stage, the obtained information is passed to Rust-analyzer. This tool performs indexing on all project files and dependencies, yielding an Analysis object that encapsulates the results. Subsequently, this analysis object is utilized within the Syntax processor.
+
+\section{Syntax Processor}
+\label{chap:impl:processor}
+
+The syntax processor module is responsible for traversing the syntax tree provided by Rust-analyzer. Its main task is to generate HTML tokens based on each syntax token encountered. To better understand the HTML tokens, let us delve into the structure of an HTML token shown in Fig. \ref{fig:html_token}.
+
+\begin{figure}[htb]
+\begin{minted}
+[frame=lines, framesep=2mm, fontsize=\small]
+{rust}
+pub struct HtmlToken {
+    pub range: TextRange,
+    pub content: String,
+    pub is_new_line: bool,
+    pub highlight: Option<String>,
+    pub hover_info: Option<HoverResult>,
+    pub navigation: Option<Navigation>,
+}
+\end{minted}
+\caption{HTML Token structure. Output of syntax processor.}
+\label{fig:html_token}
+\end{figure}
+
+The \texttt{HtmlToken} structure consists of several fields. In addition to the \texttt{range}, \texttt{content}, and \texttt{is\_new\_line} fields, which are essential for accurately displaying the token's content, there are three fields that are used for visualization purposes.
+
+The \texttt{highlight} field provides information about the type of the token, such as whether it represents a function, macro, keyword, or string literal, among others.
+
+The \texttt{hover\_info} field is responsible for displaying additional information when the user hovers over a token. This information could include details like function signatures or variable types.
+
+The \texttt{navigation} field stores data related to navigation, including the location where a function, variable, or module is defined and the places where the token is referenced.
+
+Due to limitations of the HTML generator, each HTML token can only occupy a single line. Therefore, if a token contains multiple newline characters, the syntax processor will split it into multiple HTML tokens, each having the \texttt{is\_new\_line} field set to true.
+
+During the initial stages of this project, in the design process, we decided to store information about large code blocks during this syntax traversal to allow for the possibility of hiding them in the final HTML file. However, during the implementation phase, we discovered that Rust-analyzer already provides a public API related to folding ranges of code blocks. By utilizing this API, the syntax processor can also provide the HTML generator with the folding ranges, eliminating the need to calculating this information.
+
+
+\section{HTML generator}
+\label{chap:impl:generator}
+
+The HTML generator can be considered as the main rendering component. Its primary purpose is to generate HTML code for a single source file. It receives a stream of HTML tokens from the syntax processor and performs the rendering of each token. The generated HTML content is then merged together, including line numbers and folding information.
+
+Each HTML token is processed as a \texttt{<span>} HTML tag. The token's highlight information is encoded as class attributes of the \texttt{span} tag, the hover information is represented by an internal, invisible span tag by default, and the navigation information is encoded as a custom attribute \texttt{jump-data}.
+
+Fig. \ref{fig:example_rendered_token} shows example of the rendered variable \texttt{files\_content}, which has the type \texttt{HashMap<String, String>}:
+
+\begin{figure}[htb]
+\begin{minted}
+[frame=lines, framesep=2mm, fontsize=\footnotsize]
+{text}
+<span 
+    class="hovertext variable declaration mutable"
+    jump-data=...JSON ENCODED NAVIGATION DATA...
+>files_content<span 
+        class="hovertext-content"
+        >HashMap&LTString, String></span></span>
+\end{minted}
+\caption{Example of rendered syntax token.}
+\label{fig:example_rendered_token}
+\end{figure}
+
+After rendering each token, the generator merges the results together and splits them into lines. It then constructs a stream of \texttt{Line} structures. The \texttt{Line} structure is defined in Fig. \ref{fig:line}.
+
+\begin{figure}[htb]
+\begin{minted}
+[frame=lines, framesep=2mm, fontsize=\small]
+{rust}
+struct Line {
+    number: usize,
+    html_content: String,
+    fold: Option<FoldingRange>,
+}
+\end{minted}
+\caption{Line structure. The output of HTML generator.}
+\label{fig:line}
+\end{figure}
+
+The final step of the HTML generator involves combining the lines, line numbers, and folding information. This is accomplished by rendering an HTML template using the Tera engine \cite{tera-official}. Fig. \ref{fig:generator_template} shows the content of the generator's template. It can be observed that this code section employs a table layout to render line numbers and line content. Furthermore, the template utilizes all the fields of the Line structure, such as \texttt{line.fold}, \texttt{line.number}, and \texttt{line.html\_content}. To incorporate the folding (collapsing) logic and navigation functionality, JavaScript code is utilized. This code will be linked to the report during the final stage in the Report generator.
+
+\begin{figure}[htb]
+\begin{minted}
+[frame=lines, framesep=2mm, fontsize=\footnotesize]
+{html}
+<table><tbody>
+{% for line in lines %}
+    <tr class="table-line" number="{{line.number}}">
+        <td id="L{{line.number}}" class="prevent-select line-number">
+            <a href="#L{{line.number}}">{{line.number}}</a>
+        </td>
+        {% if line.fold %}
+        <td
+            id="LF{{line.number}}"
+            class="prevent-select line-fold arrow arrow--right" 
+            data-fold-start-line="{{line.fold.start_line}}"
+            data-fold-end-line="{{line.fold.end_line}}">
+        </td>
+        {% else %}
+        <td></td>
+        {% endif %}
+        <td id="LC{{line.number}}" class="line-content"
+        ><code><pre>{{line.html_content | safe}}</pre></code></td>
+    </tr>
+{% endfor %}
+</tbody></table>
+\end{minted}
+\caption{Final HTML template of generator module.}
+\label{fig:generator_template}
+\end{figure}
+
+\section{Report Generation}
+\label{chap:impl:report_generator}
+
+The report generation module plays a significant role in the overall system. Its purpose is to take the HTML-rendered files of the project and construct a final HTML report file. However, the resulting file should not only contain the content of the project files but also include additional information.
+
+\subsection*{Tree Module}
+To fulfill the requirement of including a project tree in the final report, as indicated in the features table \ref{table:must_req}, the report generator employs a tree module. This module receives the paths of the project files and generates an HTML representation of the project tree using the HTML \texttt{<input>} tag with different type attributes. Each file in the project tree is assigned the type \texttt{"radio"} to ensure that only one file can be displayed at a given time. This is achieved through radio buttons, which allow the user to select only one option from a limited number of files. On the other hand, directories in the project tree can have any number of open options, so they are assigned the type \texttt{"checkbox"}. Checkbox buttons enable the user to select zero, one, or multiple directories from a limited set.
+
+\subsection*{Files Combiner}
+Once the project tree has been constructed, the generator proceeds to merge all the files together and place them at the bottom of the report. These files are assigned an invisible class tag. During runtime, if the user clicks on a filename in the project tree, the navigation module locates the corresponding file content and displays it in the main code section.
+
+\subsection*{Navigation}
+\label{chap:impl:navigation}
+The navigation module is the final sub-module of the report generator. It reads static files, such as CSS and JavaScript, and combines them into the final result. The JavaScript content is particularly crucial for achieving the desired functionality. It encompasses numerous tasks, such as handling user interactions with the project tree, dynamically changing the displayed file content, opening and closing the navigation menu, navigating to different files and lines, highlighting selected lines, preserving a history of jumps, and folding code blocks.
+
+In addition to the JavaScript content related to navigation, the report generator also includes CSS content, which is essential for achieving an aesthetically pleasing and user-friendly layout for the IDE. The CSS styles govern various aspects, including text formatting, hover effects, code highlighting, and more. It also takes responsibility for ensuring the correct display of the project tree, wherein closed directories should hide their internal content.
+
+We won't delve into the intricate details of CSS and JavaScript implementation in this thesis, as it requires in-depth knowledge of those fields. However, the source code can always be found in the project's GitHub repository \cite{sevenzing_2023_8017323} for a more comprehensive exploration of this section.
+
+\subsubsection*{Final Merge}
+Similar to the HTML generator, the report generator utilizes Tera templates to render the four components (tree, files, CSS, and JavaScript) into the final result. The Tera templates enable the seamless merging of these pieces to produce a comprehensive HTML report.
+
+\newpage
+\section{Conclusion}
+
+In this implementation section, we discussed the details of how the code was written to achieve the objectives of the project. We described the four main modules: Parser, Syntax Processor, HTML Generator, and Report Generation, along with their respective functionalities. Fig. \ref{fig:pseudo_code} contains pseudo code and summarizes the data flow of the project, illustrating how the different modules work together to achieve the desired functionality.
+
+
+\begin{figure}[htb]
+\begin{minted}
+[
+frame=lines,
+framesep=2mm,
+baselinestretch=1.1,
+fontsize=\footnotesize,
+linenos
+]
+{python}
+function run(root: Path) {
+    parser = Parser::new(root)
+    (files, analysis) = parser.scan_and_get_analysis()
+    processor = SyntaxProcessor::new(analysis)
+    html_tokens_map = {
+        path: processor.process_file(path)
+        for path in files
+    }
+    generator = HtmlGenerator::new()
+    files_content_map = {
+        path: generator.generate(html_tokens)
+        for (path, html_tokens) in html_tokens_map
+    }
+    report_generator = ReportGenerator::new()
+    output = report_generator.generate(
+        files_content_map
+    )
+    compressed_output = compress_html(output)
+    write_output(compressed_output)
+}
+\end{minted}
+\caption{Pseudo code that describes data flow of the project.}
+\label{fig:pseudo_code}
+\end{figure}
+
+
+The Parser module (lines 2-3) is responsible for scanning the project directory, filtering files, invoking Rust-analyzer for analysis, and preparing the data for further processing. It ensures that only relevant files are considered while excluding irrelevant ones.
+
+The Syntax Processor module (lines 4-8) traverses the syntax tree provided by Rust-analyzer and generates HTML tokens for each encountered syntax token. These tokens contain essential information about the code elements such as their range, content, highlighting, hover information, and navigation details.
+
+The HTML Generator module (lines 10-13) takes the HTML tokens from the Syntax Processor and performs rendering, including line numbers and folding information. It utilizes a template engine to combine the rendered tokens into a cohesive HTML report for each source file.
+
+The Report Generation module (lines 15-17) constructs the final HTML report file by incorporating the HTML-rendered files, project tree, navigation functionality, and CSS styles. It utilizes various sub-modules such as the tree module for representing the project tree, the files combiner for merging project files, and the navigation module for handling user interactions and enabling navigation within the report.

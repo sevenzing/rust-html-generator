@@ -1,0 +1,8 @@
+\begin{abstract}
+\par Static code analysis is popular among developers and IT specialists as it improves code comprehension and software architecture. Rust, an innovative and powerful language, can be challenging to understand due to its strong compile-time requirements. To address this, IDEs (Integrated Development Environments) with built-in static code analyzers have been developed. However, many existing tools are heavy and require additional dependencies, making IDEs inconvenient for code understanding and viewing.
+
+In this thesis, we propose an alternative approach. Instead of an interactive text editor, we analyze Rust source code once and generate a ready-made HTML file with visualized code. This HTML file can be accessed through a regular browser without additional installations. We compare two methods of parsing Rust source code to create an Abstract Syntax Tree (AST), explain how we populate the AST with information about types, definitions, and cross-links between entities, and describe our process of generating a static HTML page with all the features found in a conventional IDE. Our application generates a static visualization of the project in the form of an HTML page called a report. This report can be easily shared without dependencies. It serves various purposes such as code review, onboarding new employees, or showcasing the project's results to customers.
+
+The thesis concludes with an evaluation of the application's performance and limitations, as well as suggestions for future work. The HTML report generation application provides a valuable tool for Rust developers to navigate and understand code efficiently.
+
+\end{abstract}
